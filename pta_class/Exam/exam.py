@@ -1,4 +1,4 @@
-from ..Base import *
+from ..Base import BaseData, BaseScore, BaseId
 
 class ExamId(BaseId):
     """exam的id"""

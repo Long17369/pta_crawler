@@ -1,6 +1,6 @@
 from typing import Any
 from ..Base import *
-from ..Problems import ProblemsId
+from ..Problems.problems import ProblemsId
 from .JudgeResponseContents import JudgeResponseContents
 
 
@@ -112,3 +112,11 @@ class Submission(BaseData):
                 self.judgeResponseContents.append(JudgeResponseContents(i))
         else:
             super().__setattr__(name, value)
+
+    def updata(self,other:'Submission'):
+        """更新提交信息"""
+        for k,v in other:
+            if k in self.__dict__:
+                self.__dict__[k] = v
+            else:
+                raise KeyError(f"{k} not in {self.__class__.__name__}")

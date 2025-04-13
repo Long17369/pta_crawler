@@ -26,26 +26,20 @@ class BaseData:
         if len(args) == 1:
             if isinstance(args[0], dict):
                 for key, value in args[0].items():
-                    if isinstance(value, list|dict):
+                    if isinstance(value, list | dict):
                         continue
                     if hasattr(self, key):
-                        setattr(self, key, type(getattr(self, key))(value))
+                        setattr(self, key, value)
                     else:
                         self.other[key] = value
-            elif isinstance(args[0], list):
-                for key, value in zip(self.__annotations__.keys(), args[0]):
-                    if isinstance(value, list|dict):
-                        continue
-                    if hasattr(self, key):
-                        setattr(self, key, type(getattr(self, key))(value))
-                    else:
-                        self.other[key] = value
+            else:
+                raise TypeError(f"Cannot convert {type(args[0])} to {self.__class__}")
         else:
             for key, value in kwargs.items():
-                if isinstance(value, list|dict):
+                if isinstance(value, list | dict):
                     continue
                 if hasattr(self, key):
-                    setattr(self, key, type(getattr(self, key))(value))
+                    setattr(self, key, value)
                 else:
                     self.other[key] = value
         pass
@@ -71,3 +65,21 @@ class BaseData:
                     yield k, v
                 continue
             yield key, getattr(self, key)
+
+    def __repr__(self) -> str:
+        data = dict(self)
+        return f"{self.__class__.__name__}({data})"
+
+    def __str__(self) -> str:
+        data = dict(self)
+        return f"{data}"
+
+    def __setattr__(self, key, value) -> None:
+        if key in self.__annotations__.keys():
+            if hasattr(self, key):
+                super().__setattr__(key, type(getattr(self,key))(value))
+            else:
+                super().__setattr__(key, value)
+        else:
+            self.other[key] = value
+
