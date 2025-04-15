@@ -1,5 +1,8 @@
+import json
 from requests import Session
 from datetime import datetime, timezone
+
+from pta_class.ExamProblemTypes.examProblemTypes import ExamProblemTypesLabel, ExamProblemTypesLabelId
 from .browser_login import login as web_login
 
 from .Problems.problems import Problems, ProblemsId
@@ -53,9 +56,12 @@ class pta:
         self.problem_sets: list[Problems] = []
         self.exam_info: dict[ProblemsId, Exam] = {}
         self.problems_list: dict[ProblemsId, ExamProblemTypes] = {}
-        self.submission_list: dict[ProblemsId, dict[SubmissionId, Submission]] = {}
+        self.submission_list: dict[ExamProblemTypesLabelId, dict[SubmissionId, Submission]] = {}
 
     def login(self) -> bool:
+        """登录函数"""
+        if self.read_cookies():
+            return True
         payload = {
             "email": self.email,
             "password": self.password,
@@ -86,7 +92,7 @@ class pta:
     def browser_login(self) -> bool:
         """使用浏览器登录"""
         try:
-            cookies = web_login()
+            cookies = web_login(self.email,self.password)
         except Exception as e:
             print(f"发生错误: {e}")
             return False
@@ -96,10 +102,10 @@ class pta:
     def get_problems(self) -> bool:
         payload = {"filter": {"endAtAfter": time()}}
         with Session() as session:
-            requsets = session.get(problem_set_url, json=payload, cookies=self.cookies)
+            requsets = session.get(problem_set_url, json=payload, cookies=self.cookies,headers=headers)
             if requsets.status_code == 200:
                 problem_set = requsets.json()
-                self.problem_sets += [i for i in problem_set["problemSets"]]
+                self.problem_sets += [Problems(i) for i in problem_set["problemSets"]]
                 return True
             else:
                 print(
@@ -112,7 +118,7 @@ class pta:
             return True
         url = exam_url.format(problems_id=problems.id)
         with Session() as session:
-            requests = session.get(url, cookies=self.cookies)
+            requests = session.get(url, cookies=self.cookies,headers=headers)
             if requests.status_code == 200:
                 exam_info = requests.json()
                 self.exam_info[problems.id] = Exam(exam_info["exams"])
@@ -128,7 +134,7 @@ class pta:
             return True
         url = problem_list_url.format(problems_id=problems.id)
         with Session() as session:
-            requests = session.get(url, cookies=self.cookies)
+            requests = session.get(url, cookies=self.cookies,headers=headers)
             if requests.status_code == 200:
                 problem_list_info = requests.json()
                 self.problems_list[problems.id] = ExamProblemTypes(
@@ -143,14 +149,14 @@ class pta:
 
     def get_submission_list(
         self,
-        problems_id: ProblemsId,
+        problems: Problems,
         exam: Exam,
-        problem_set_problem_id: SubmissionProblemSetProblemId,
+        problemid: ExamProblemTypesLabelId,
     ) -> bool:
-        url = problem_submission_url.format(exam_id=exam.id, problems_id=problems_id)
+        url = problem_submission_url.format(exam_id=exam.id, problems_id=problems.id,headers=headers)
         payload = {
             "filter": {
-                "problemSetProblemId": problem_set_problem_id,
+                "problemSetProblemId": problemid,
             }
         }
         with Session() as session:
@@ -159,7 +165,7 @@ class pta:
                 submission_list = requests.json()
                 for i in submission_list["submissions"]:
                     submission = Submission(i)
-                    self.submission_list[problems_id][submission.id] = submission
+                    self.submission_list[problemid][submission.id] = submission
                 return True
             else:
                 print(
@@ -170,7 +176,7 @@ class pta:
     def get_submission_info(self, submission: Submission):
         url = submission_url.format(submission_id=submission.id)
         with Session() as session:
-            requests = session.get(url, cookies=self.cookies)
+            requests = session.get(url, cookies=self.cookies,headers=headers)
             if requests.status_code == 200:
                 submission_info = requests.json()
                 new_data = Submission(submission_info["submission"])
@@ -181,3 +187,23 @@ class pta:
                     f"获取提交信息失败: {requests.json()}\n错误码: {requests.status_code}"
                 )
                 return False
+
+    def save_cookies(self, path: str='data.json') -> bool:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(self.cookies, f, ensure_ascii=False, indent=4, )
+        return True
+
+    def read_cookies(self, path: str='data.json') -> bool:
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                self.cookies = json.load(f)
+            return True
+        except FileNotFoundError:
+            print("Cookie文件不存在")
+            return False
+        except json.JSONDecodeError:
+            print("Cookie文件格式错误")
+            return False
+        except Exception as e:
+            print(f"发生错误: {e}")
+            return False

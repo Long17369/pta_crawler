@@ -1,6 +1,6 @@
 from typing import Any
 from ..Base import *
-from ..Problems import ProblemsId
+from ..Problems.problems import ProblemsId
 from .TestcaseJudgeResults import TestcaseJudgeResults
 
 

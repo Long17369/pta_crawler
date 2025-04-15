@@ -17,6 +17,12 @@ class BaseBool:
     def __bool__(self) -> bool:
         return self.data
 
+    def __repr__(self) -> str:
+        return str(self.data)
+
+    def __str__(self) -> str:
+        return str(self.data)
+
 
 class BaseData:
     """数据基类"""
@@ -59,12 +65,13 @@ class BaseData:
                 setattr(self, key, getattr(other, key))
 
     def __iter__(self):
-        for key in self.__annotations__.keys():
+        for key in self.__dict__.keys():
             if key == "other":
-                for k, v in getattr(self, key):
+                for k, v in self.other.items():
                     yield k, v
                 continue
             yield key, getattr(self, key)
+
 
     def __repr__(self) -> str:
         data = dict(self)
@@ -80,6 +87,20 @@ class BaseData:
                 super().__setattr__(key, type(getattr(self,key))(value))
             else:
                 super().__setattr__(key, value)
+        elif key == 'other':
+            super().__setattr__(key,value)
         else:
             self.other[key] = value
 
+    def to_dict(self) -> dict:
+        res = dict()
+        for k,v in self:
+            if isinstance(v,BaseData):
+                res[k] = v.to_dict()
+            elif isinstance(v,list):
+                res[k] = [i.to_dict() if isinstance(i,BaseData) else i for i in v]
+            elif isinstance(v,dict):
+                res[k] = {k2:v2.to_dict() if isinstance(v2,BaseData) else v2 for k2,v2 in v.items()}
+            else:
+                res[k] = v
+        return res
