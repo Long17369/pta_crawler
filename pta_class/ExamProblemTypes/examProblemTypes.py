@@ -63,13 +63,16 @@ class ExamProblemTypesProblemTypes:
 
 
 class ExamProblemTypes(BaseData):
-    labels: list[ExamProblemTypesLabel] = []
-    problemTypes: list[ExamProblemTypesProblemTypes] = []
+    labels: list[ExamProblemTypesLabel]
+    problemTypes: list[ExamProblemTypesProblemTypes]
     examLabelByProblemSetProblemId: dict[
-        ExamProblemTypesLabelId, ExamProblemTypesLabel
-    ] = {}
+        ExamProblemTypesLabelId, ExamProblemTypesLabelNumber
+    ]
 
     def __init__(self, *args, **kwargs) -> None:
+        super().__setattr__('labels',[])
+        super().__setattr__('problemTypes',[])
+        super().__setattr__('examLabelByProblemSetProblemId',{})
         super().__init__(*args, **kwargs)
 
     def __setattr__(self, key: str, value: Any) -> None:
@@ -79,7 +82,7 @@ class ExamProblemTypes(BaseData):
         elif key == "examLabelByProblemSetProblemId":
             for key, item in value.items():
                 self.examLabelByProblemSetProblemId[ExamProblemTypesLabelId(key)] = (
-                    ExamProblemTypesLabel(item)
+                    ExamProblemTypesLabelNumber(item)
                 )
         else:
             return super().__setattr__(key, value)

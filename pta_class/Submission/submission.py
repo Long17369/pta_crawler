@@ -97,10 +97,12 @@ class Submission(BaseData):
     judgeAt: SubmissionJudgeAt = SubmissionJudgeAt()
     cause: SubmissionCause = SubmissionCause()
     problemSetId: ProblemsId = ProblemsId()
-    submissionDetails: list[SubmissionDetails] = []
-    judgeResponseContents: list[JudgeResponseContents] = []
+    submissionDetails: list[SubmissionDetails]
+    judgeResponseContents: list[JudgeResponseContents]
 
     def __init__(self, *args, **kwargs) -> None:
+        super().__setattr__('submissionDetails',[])
+        super().__setattr__('judgeResponseContents',[])
         super().__init__(*args, **kwargs)
 
     def __setattr__(self, name: str, value: Any) -> None:
@@ -117,6 +119,6 @@ class Submission(BaseData):
         """更新提交信息"""
         for k,v in other:
             if k in self.__dict__:
-                self.__dict__[k] = v
+                setattr(self,k,v)
             else:
-                raise KeyError(f"{k} not in {self.__class__.__name__}")
+                self.other[k] = v

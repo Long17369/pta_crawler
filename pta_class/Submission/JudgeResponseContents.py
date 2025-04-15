@@ -66,15 +66,16 @@ class ProgrammingJudgeResponseContent(BaseData):
 
     compilationResult: CompilationResult = CompilationResult()
     checkerCompilationResult: CheckerCompilationResult = CheckerCompilationResult()
-    testcaseJudgeResults: dict[str, TestcaseJudgeResults] = {}
+    testcaseJudgeResults: dict[str, TestcaseJudgeResults]
     problemSetProblemId: ProblemsId = ProblemsId()
 
     def __init__(self, *args, **kwargs) -> None:
+        super().__setattr__('testcaseJudgeResults',{})
         super().__init__(*args, **kwargs)
 
     def __setattr__(self, name: str, value: Any) -> None:
         if name == 'testcaseJudgeResults':
-            for k,v in value:
+            for k,v in value.items():
                 self.testcaseJudgeResults[k] = TestcaseJudgeResults(v)
         else:
             super().__setattr__(name, value)

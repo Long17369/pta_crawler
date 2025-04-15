@@ -6,5 +6,6 @@ __pycache__/
 edgedrive/
 
 *.ipynb
+*.json
 
-data.json
+output/

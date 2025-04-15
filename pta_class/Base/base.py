@@ -11,8 +11,8 @@ class BaseBool:
 
     data: bool
 
-    def __init__(self, data: bool = False) -> None:
-        self.data = data
+    def __init__(self, data: 'bool|BaseBool' = False) -> None:
+        self.data = bool(data)
 
     def __bool__(self) -> bool:
         return self.data
@@ -32,8 +32,12 @@ class BaseData:
         if len(args) == 1:
             if isinstance(args[0], dict):
                 for key, value in args[0].items():
-                    if isinstance(value, list | dict):
-                        continue
+                    if hasattr(self, key):
+                        setattr(self, key, value)
+                    else:
+                        self.other[key] = value
+            elif isinstance(args[0], BaseData):
+                for key, value in args[0].__dict__.items():
                     if hasattr(self, key):
                         setattr(self, key, value)
                     else:
@@ -42,8 +46,6 @@ class BaseData:
                 raise TypeError(f"Cannot convert {type(args[0])} to {self.__class__}")
         else:
             for key, value in kwargs.items():
-                if isinstance(value, list | dict):
-                    continue
                 if hasattr(self, key):
                     setattr(self, key, value)
                 else:
@@ -54,15 +56,6 @@ class BaseData:
         if hasattr(self, key):
             return getattr(self, key)
         raise KeyError(f"{key} not found")
-
-    def union(self, other: "BaseData") -> None:
-        if type(self) != type(other):
-            raise TypeError(f"Cannot union {type(self)} and {type(other)}")
-        for key in self.__annotations__.keys():
-            if key == "other":
-                self.other.update(other.other)
-            if hasattr(other, key):
-                setattr(self, key, getattr(other, key))
 
     def __iter__(self):
         for key in self.__dict__.keys():
@@ -101,6 +94,8 @@ class BaseData:
                 res[k] = [i.to_dict() if isinstance(i,BaseData) else i for i in v]
             elif isinstance(v,dict):
                 res[k] = {k2:v2.to_dict() if isinstance(v2,BaseData) else v2 for k2,v2 in v.items()}
+            elif isinstance(v,BaseBool):
+                res[k] = bool(v)
             else:
                 res[k] = v
         return res

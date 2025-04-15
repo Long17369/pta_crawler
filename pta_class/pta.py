@@ -2,7 +2,10 @@ import json
 from requests import Session
 from datetime import datetime, timezone
 
-from pta_class.ExamProblemTypes.examProblemTypes import ExamProblemTypesLabel, ExamProblemTypesLabelId
+from pta_class.ExamProblemTypes.examProblemTypes import (
+    ExamProblemTypesLabel,
+    ExamProblemTypesLabelId,
+)
 from .browser_login import login as web_login
 
 from .Problems.problems import Problems, ProblemsId
@@ -16,8 +19,10 @@ from .Submission.submission import (
 
 from datetime import datetime, timezone
 
+import time
 
-def time() -> str:
+
+def get_time_str() -> str:
     """获取当前时间（UTC 时间）并格式化为 ISO 8601 格式的时间戳"""
     current_time = datetime.now(timezone.utc)
     formatted_time = current_time.isoformat()
@@ -48,7 +53,7 @@ headers = {
 
 
 class pta:
-    def __init__(self, email: str="", password: str=""):
+    def __init__(self, email: str = "", password: str = ""):
         self.email = email
         self.password = password
         self.cookies: dict[str, str] = {}
@@ -56,7 +61,9 @@ class pta:
         self.problem_sets: list[Problems] = []
         self.exam_info: dict[ProblemsId, Exam] = {}
         self.problems_list: dict[ProblemsId, ExamProblemTypes] = {}
-        self.submission_list: dict[ExamProblemTypesLabelId, dict[SubmissionId, Submission]] = {}
+        self.submission_list: dict[
+            ExamProblemTypesLabelId, dict[SubmissionId, Submission]
+        ] = {}
 
     def login(self) -> bool:
         """登录函数"""
@@ -92,7 +99,7 @@ class pta:
     def browser_login(self) -> bool:
         """使用浏览器登录"""
         try:
-            cookies = web_login(self.email,self.password)
+            cookies = web_login(self.email, self.password)
         except Exception as e:
             print(f"发生错误: {e}")
             return False
@@ -100,9 +107,11 @@ class pta:
         return True
 
     def get_problems(self) -> bool:
-        payload = {"filter": {"endAtAfter": time()}}
+        payload = {"filter": {"endAtAfter": get_time_str()}}
         with Session() as session:
-            requsets = session.get(problem_set_url, json=payload, cookies=self.cookies,headers=headers)
+            requsets = session.get(
+                problem_set_url, json=payload, cookies=self.cookies, headers=headers
+            )
             if requsets.status_code == 200:
                 problem_set = requsets.json()
                 self.problem_sets += [Problems(i) for i in problem_set["problemSets"]]
@@ -118,10 +127,10 @@ class pta:
             return True
         url = exam_url.format(problems_id=problems.id)
         with Session() as session:
-            requests = session.get(url, cookies=self.cookies,headers=headers)
+            requests = session.get(url, cookies=self.cookies, headers=headers)
             if requests.status_code == 200:
                 exam_info = requests.json()
-                self.exam_info[problems.id] = Exam(exam_info["exams"])
+                self.exam_info[problems.id] = Exam(exam_info["exam"])
                 return True
             else:
                 print(
@@ -134,12 +143,10 @@ class pta:
             return True
         url = problem_list_url.format(problems_id=problems.id)
         with Session() as session:
-            requests = session.get(url, cookies=self.cookies,headers=headers)
+            requests = session.get(url, cookies=self.cookies, headers=headers)
             if requests.status_code == 200:
                 problem_list_info = requests.json()
-                self.problems_list[problems.id] = ExamProblemTypes(
-                    problem_list_info["examProblemTypes"]
-                )
+                self.problems_list[problems.id] = ExamProblemTypes(problem_list_info)
                 return True
             else:
                 print(
@@ -153,20 +160,23 @@ class pta:
         exam: Exam,
         problemid: ExamProblemTypesLabelId,
     ) -> bool:
-        url = problem_submission_url.format(exam_id=exam.id, problems_id=problems.id,headers=headers)
-        payload = {
-            "filter": {
-                "problemSetProblemId": problemid,
-            }
-        }
+        url = problem_submission_url.format(exam_id=exam.id, problems_id=problems.id)
+        payload = {"limit": 50, "filter": str({"problemSetProblemId": problemid})}
         with Session() as session:
-            requests = session.get(url, json=payload, cookies=self.cookies)
+            requests = session.get(
+                url, cookies=self.cookies, headers=headers, params=payload
+            )
             if requests.status_code == 200:
                 submission_list = requests.json()
+                if problemid not in self.submission_list.keys():
+                    self.submission_list[problemid] = {}
                 for i in submission_list["submissions"]:
                     submission = Submission(i)
                     self.submission_list[problemid][submission.id] = submission
                 return True
+            elif requests.status_code == 429:
+                time.sleep(0.5)
+                return self.get_submission_list(problems,exam,problemid)
             else:
                 print(
                     f"获取提交信息失败: {requests.json()}\n错误码: {requests.status_code}"
@@ -176,24 +186,32 @@ class pta:
     def get_submission_info(self, submission: Submission):
         url = submission_url.format(submission_id=submission.id)
         with Session() as session:
-            requests = session.get(url, cookies=self.cookies,headers=headers)
+            requests = session.get(url, cookies=self.cookies, headers=headers)
             if requests.status_code == 200:
                 submission_info = requests.json()
                 new_data = Submission(submission_info["submission"])
                 submission.updata(new_data)
                 return True
+            if requests.status_code == 429:
+                time.sleep(0.5)
+                return self.get_submission_info(submission)
             else:
                 print(
                     f"获取提交信息失败: {requests.json()}\n错误码: {requests.status_code}"
                 )
                 return False
 
-    def save_cookies(self, path: str='data.json') -> bool:
+    def save_cookies(self, path: str = "data.json") -> bool:
         with open(path, "w", encoding="utf-8") as f:
-            json.dump(self.cookies, f, ensure_ascii=False, indent=4, )
+            json.dump(
+                self.cookies,
+                f,
+                ensure_ascii=False,
+                indent=4,
+            )
         return True
 
-    def read_cookies(self, path: str='data.json') -> bool:
+    def read_cookies(self, path: str = "data.json") -> bool:
         try:
             with open(path, "r", encoding="utf-8") as f:
                 self.cookies = json.load(f)
