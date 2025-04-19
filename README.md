@@ -41,11 +41,7 @@ PTA 是一个用于与 PTA 在线考试和题库系统交互的工具。
    - Firefox 浏览器：下载与 Firefox 浏览器版本匹配的 [GeckoDriver](https://github.com/mozilla/geckodriver/releases)。
    - Edge 浏览器：下载与 Edge 浏览器版本匹配的 [EdgeDriver](https://developer.microsoft.com/microsoft-edge/tools/webdriver/)。
 
-   在终端运行以下命令，确保驱动程序安装成功：
-
-   ```bash
-   chromedriver --version
-   ```
+   请将下载好的驱动放入drive目录并修改 [drive.py](drive.py) 的 `drive_name` 参数
 
 ## 使用
 
