@@ -25,24 +25,23 @@
 
 3. 创建虚拟环境：
 
-   运行以下命令以创建虚拟环境并安装依赖库：
+   运行以下脚本以创建虚拟环境并安装依赖库：
 
-   ```bash
-   createnv.bat
-   ```
+   - `windows`: [createnv.bat](createnv.bat)
+   - `Linux`: [createnv.sh](createnv.sh)
 
 4. 安装浏览器驱动（以 Chrome 为例）：
 
    - 确保已安装 Chrome 浏览器。
    - 下载与 Chrome 浏览器版本匹配的 [ChromeDriver](https://chromedriver.chromium.org/downloads)。
-   - 请将下载好的驱动 (`.exe`文件) 放入drive目录
+   - 请将下载好的驱动 (可执行文件) 放入drive目录
    - 修改 [drive.py](drive.py) 的 `drive_name` 参数
 
    **其余浏览器**
    - Firefox 浏览器：下载与 Firefox 浏览器版本匹配的 [GeckoDriver](https://github.com/mozilla/geckodriver/releases)。
    - Edge 浏览器：下载与 Edge 浏览器版本匹配的 [EdgeDriver](https://developer.microsoft.com/microsoft-edge/tools/webdriver/)。
 
-   请将下载好的驱动 (`.exe`文件) 放入drive目录  
+   请将下载好的驱动 (可执行文件) 放入drive目录  
    修改 [drive.py](drive.py) 的 `drive_name` 参数
 
 ## 使用
@@ -58,7 +57,7 @@
 ## 文件结构
 
 - `pta_class`：核心功能模块。
-- `main.py`：主程序入口。
+- `main.py`：主程序入口 (爬取题目信息和提交信息)。
 - `output/`：导出的 JSON 和代码文件存储目录。
 
 ## 问题
