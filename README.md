@@ -18,7 +18,7 @@
 1. 克隆此仓库：
 
    ```bash
-   git clone <仓库地址>
+   git clone https://github.com/Long17369/pta_crawler
    ```
 
 2. 确保使用 Python 版本 3.10.6 或更高版本。
