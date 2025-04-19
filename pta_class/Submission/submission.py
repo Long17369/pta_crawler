@@ -56,15 +56,20 @@ class SubmissionCause(str):
     """判题原因"""
 
 
-class ProgrammingSubmissionDetail:
+class ProgrammingSubmissionDetail(BaseData):
+    """提交的编程详情"""
+
     class Compiler(str):
         """提交使用的编译器"""
 
     class Program(str):
         """提交的代码"""
 
-    compiler: Compiler
-    program: Program
+    compiler: Compiler = Compiler()
+    program: Program = Program()
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
 
 
 class ProblemId(str):
@@ -73,9 +78,10 @@ class ProblemId(str):
 
 class SubmissionDetails(BaseData):
 
-    problemSetProblemId: SubmissionProblemSetProblemId
-    programmingSubmissionDetail: ProgrammingSubmissionDetail
-    problemId: ProblemId
+    problemSetProblemId: SubmissionProblemSetProblemId = SubmissionProblemSetProblemId()
+    programmingSubmissionDetail: ProgrammingSubmissionDetail = ProgrammingSubmissionDetail()
+    codeCompletionSubmissionDetail: ProgrammingSubmissionDetail = ProgrammingSubmissionDetail()
+    problemId: ProblemId = ProblemId()
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -101,8 +107,8 @@ class Submission(BaseData):
     judgeResponseContents: list[JudgeResponseContents]
 
     def __init__(self, *args, **kwargs) -> None:
-        super().__setattr__('submissionDetails',[])
-        super().__setattr__('judgeResponseContents',[])
+        super().__setattr__("submissionDetails", [])
+        super().__setattr__("judgeResponseContents", [])
         super().__init__(*args, **kwargs)
 
     def __setattr__(self, name: str, value: Any) -> None:
@@ -115,10 +121,10 @@ class Submission(BaseData):
         else:
             super().__setattr__(name, value)
 
-    def updata(self,other:'Submission'):
+    def updata(self, other: "Submission"):
         """更新提交信息"""
-        for k,v in other:
+        for k, v in other:
             if k in self.__dict__:
-                setattr(self,k,v)
+                setattr(self, k, v)
             else:
                 self.other[k] = v

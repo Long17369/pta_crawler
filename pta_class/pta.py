@@ -65,9 +65,9 @@ class pta:
             ExamProblemTypesLabelId, dict[SubmissionId, Submission]
         ] = {}
 
-    def login(self) -> bool:
+    def login(self,nocookies:bool=False) -> bool:
         """登录函数"""
-        if self.read_cookies():
+        if (not nocookies) and self.read_cookies():
             return True
         payload = {
             "email": self.email,
@@ -120,6 +120,14 @@ class pta:
                 print(
                     f"获取题库失败: {requsets.json()}\n错误码: {requsets.status_code}"
                 )
+                if(requsets.json()['error']['code'] == 'USER_NOT_FOUND'):
+                    choise = input("是否重新登录？(y/n)")
+                    if choise.lower() == "y":
+                        self.cookies = {}
+                        self.login(nocookies=True)
+                        return self.get_problems()
+                    else:
+                        raise Exception("用户不存在")
                 return False
 
     def get_exam(self, problems: Problems) -> bool:

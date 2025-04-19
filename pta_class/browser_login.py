@@ -1,14 +1,14 @@
 from selenium import webdriver
-from selenium.webdriver.edge.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.edge.service import Service
 
 login_url="https://pintia.cn/auth/login"
 
 def login(email: str = "", password: str = ""):
     drive = webdriver.Edge(
-        service=Service(executable_path=".\\edgedrive\\msedgedriver.exe")
+        service=Service(executable_path=".\\drive\\msedgedriver.exe")
     )
     drive.get(login_url)
     try:
