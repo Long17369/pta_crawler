@@ -5,53 +5,61 @@ from selenium.webdriver.support import expected_conditions as EC
 import os
 from drive import *
 
-if drive_name.lower() == "chrome":
-    driver_path = ".\\drive\\chromedriver.exe"
-    from selenium.webdriver.chrome.service import Service
-    drive = webdriver.Chrome(
-        service=Service(executable_path=driver_path)
-    )
-elif drive_name.lower() == "edge":
-    driver_path = ".\\drive\\msedgedriver.exe"
-    from selenium.webdriver.edge.service import Service
-    drive = webdriver.Edge(
-        service=Service(executable_path=driver_path)
-    )
-elif drive_name.lower() == "firefox":
-    driver_path = ".\\drive\\geckodriver.exe"
-    from selenium.webdriver.firefox.service import Service
-    drive = webdriver.Firefox(
-        service=Service(executable_path=driver_path)
-    )
-elif drive_name.lower() == "auto":
-    if os.path.exists(".\\drive\\chromedriver.exe"):
+def get_driver(drive_name: str = "auto"):
+    """
+    获取浏览器驱动
+    :param drive_name: 浏览器类型，支持 chrome、edge、firefox
+    :return: 浏览器驱动对象
+    """
+    if drive_name.lower() == "chrome":
         driver_path = ".\\drive\\chromedriver.exe"
         from selenium.webdriver.chrome.service import Service
         drive = webdriver.Chrome(
             service=Service(executable_path=driver_path)
         )
-    elif os.path.exists(".\\drive\\msedgedriver.exe"):
+    elif drive_name.lower() == "edge":
         driver_path = ".\\drive\\msedgedriver.exe"
         from selenium.webdriver.edge.service import Service
         drive = webdriver.Edge(
             service=Service(executable_path=driver_path)
         )
-    elif os.path.exists(".\\drive\\geckodriver.exe"):
+    elif drive_name.lower() == "firefox":
         driver_path = ".\\drive\\geckodriver.exe"
         from selenium.webdriver.firefox.service import Service
         drive = webdriver.Firefox(
             service=Service(executable_path=driver_path)
         )
+    elif drive_name.lower() == "auto":
+        if os.path.exists(".\\drive\\chromedriver.exe"):
+            driver_path = ".\\drive\\chromedriver.exe"
+            from selenium.webdriver.chrome.service import Service
+            drive = webdriver.Chrome(
+                service=Service(executable_path=driver_path)
+            )
+        elif os.path.exists(".\\drive\\msedgedriver.exe"):
+            driver_path = ".\\drive\\msedgedriver.exe"
+            from selenium.webdriver.edge.service import Service
+            drive = webdriver.Edge(
+                service=Service(executable_path=driver_path)
+            )
+        elif os.path.exists(".\\drive\\geckodriver.exe"):
+            driver_path = ".\\drive\\geckodriver.exe"
+            from selenium.webdriver.firefox.service import Service
+            drive = webdriver.Firefox(
+                service=Service(executable_path=driver_path)
+            )
+        else:
+            raise ValueError("请下载驱动并放入 drive 文件夹")
     else:
-        raise ValueError("请下载驱动并放入 drive 文件夹")
-else:
-    raise ValueError("不支持的浏览器驱动类型，请使用 chrome、edge、firefox 或 自行添加。")
+        raise ValueError("不支持的浏览器驱动类型，请使用 chrome、edge、firefox 或 自行添加。")
+    return drive
 
 
 
 login_url="https://pintia.cn/auth/login"
 
 def login(email: str = "", password: str = ""):
+    drive = get_driver()
     drive.get(login_url)
     try:
         WebDriverWait(drive, 3600).until(
