@@ -82,8 +82,6 @@ def main(email: str = "", password: str = ""):
                 pid = p.problems_list[problem.id].labels[idx].id
                 datatmp = {
                     "title": p.problems_list[problem.id].labels[idx].title,
-                    "content" :p.problems_list[problem.id].labels[idx].content,
-                    "description" : p.problems_list[problem.id].labels[idx].description,
                     "id": pid,
                     "proid": p.problems_list[problem.id].examLabelByProblemSetProblemId[
                         pid
@@ -121,7 +119,7 @@ def main(email: str = "", password: str = ""):
                 with open(
                     f"output/{problem.name}/code/{pid}.cont.md", "w", encoding="utf-8"
                 ) as f:
-                    f.write(f"{datatmp['content']}\n")
+                    f.write(f"{p.problems_list[problem.id].labels[idx].content}\n")
                 data["content"].append(datatmp)
                 break
     with open(f"output/{problem.name}/data.json", "w", encoding="utf-8") as f:
