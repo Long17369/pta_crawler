@@ -59,6 +59,8 @@ def main(email: str = "", password: str = ""):
         p.get_submission_list(problem, p.exam_info[problem.id], i)
     for i in tqdm([j for i in p.submission_list.values() for j in i.values()]):
         p.get_submission_info(i)
+    for i in tqdm([(i,k) for i,j in p.problems_list.items() for k in j.labels]):
+        p.get_problem_description(*i)
     with open("data2.json", "w", encoding="utf-8") as f:
         json.dump(
             {
@@ -80,6 +82,8 @@ def main(email: str = "", password: str = ""):
                 pid = p.problems_list[problem.id].labels[idx].id
                 datatmp = {
                     "title": p.problems_list[problem.id].labels[idx].title,
+                    "content" :p.problems_list[problem.id].labels[idx].content,
+                    "description" : p.problems_list[problem.id].labels[idx].description,
                     "id": pid,
                     "proid": p.problems_list[problem.id].examLabelByProblemSetProblemId[
                         pid
@@ -117,8 +121,7 @@ def main(email: str = "", password: str = ""):
                 with open(
                     f"output/{problem.name}/code/{pid}.cont.md", "w", encoding="utf-8"
                 ) as f:
-                    f.write(f"# {datatmp['title']}\n")
-                    # todo: 写入具体问题
+                    f.write(f"{datatmp['content']}\n")
                 data["content"].append(datatmp)
                 break
     with open(f"output/{problem.name}/data.json", "w", encoding="utf-8") as f:

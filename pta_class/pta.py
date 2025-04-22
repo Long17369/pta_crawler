@@ -37,6 +37,9 @@ problem_submission_url = (
 exam_url = "https://pintia.cn/api/problem-sets/{problems_id}/exams"
 problem_list_url = "https://pintia.cn/api/problem-sets/{problems_id}/exam-problem-types"
 submission_url = "https://pintia.cn/api/submissions/{submission_id}"
+exam_problems_url = (
+    "https://pintia.cn/api/problem-sets/{problems_id}/exam-problems/{problem_id}"
+)
 headers = {
     "Sec-Ch-Ua": '"Microsoft Edge";v="135", "Not-A.Brand";v="8", "Chromium";v="135"',
     "Accept-Language": "zh-CN",
@@ -65,7 +68,7 @@ class pta:
             ExamProblemTypesLabelId, dict[SubmissionId, Submission]
         ] = {}
 
-    def login(self,nocookies:bool=False) -> bool:
+    def login(self, nocookies: bool = False) -> bool:
         """登录函数"""
         if (not nocookies) and self.read_cookies():
             return True
@@ -120,7 +123,7 @@ class pta:
                 print(
                     f"获取题库失败: {requsets.json()}\n错误码: {requsets.status_code}"
                 )
-                if(requsets.json()['error']['code'] == 'USER_NOT_FOUND'):
+                if requsets.json()["error"]["code"] == "USER_NOT_FOUND":
                     choise = input("是否重新登录？(y/n)")
                     if choise.lower() == "y":
                         self.cookies = {}
@@ -184,7 +187,7 @@ class pta:
                 return True
             elif requests.status_code == 429:
                 time.sleep(0.5)
-                return self.get_submission_list(problems,exam,problemid)
+                return self.get_submission_list(problems, exam, problemid)
             else:
                 print(
                     f"获取提交信息失败: {requests.json()}\n错误码: {requests.status_code}"
@@ -208,6 +211,23 @@ class pta:
                     f"获取提交信息失败: {requests.json()}\n错误码: {requests.status_code}"
                 )
                 return False
+
+    def get_problem_description(
+        self, problemsid: ProblemsId, problem: ExamProblemTypesLabel
+    ) -> bool:
+        url = exam_problems_url.format(problems_id=problemsid, problem_id=problem.id)
+        with Session() as session:
+            requests = session.get(url, cookies=self.cookies, headers=headers)
+            if requests.status_code == 200:
+                problem_info = requests.json()
+                problem.updata(ExamProblemTypesLabel(problem_info["problemSetProblem"]))
+                return True
+            else:
+                print(
+                    f"获取题目描述失败: {requests.json()}\n错误码: {requests.status_code}"
+                )
+                return False
+        return False
 
     def save_cookies(self, path: str = "data.json") -> bool:
         with open(path, "w", encoding="utf-8") as f:

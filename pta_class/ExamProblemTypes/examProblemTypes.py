@@ -37,6 +37,11 @@ class ExamProblemTypesLabelLabel(str):
 class ExamProblemTypesLabelIndexInProblemPool(int):
     """题目在题库中的索引 (好像不对)"""
 
+class ExamProblemTypesLabelContent(str):
+    """题目的内容"""
+
+class ExamProblemTypesLabelDescription(str):
+    """题目的描述"""
 
 class ExamProblemTypesLabel(BaseData):
     """题目的各种属性"""
@@ -53,9 +58,19 @@ class ExamProblemTypesLabel(BaseData):
     indexInProblemPool: ExamProblemTypesLabelIndexInProblemPool = (
         ExamProblemTypesLabelIndexInProblemPool()
     )
+    content :ExamProblemTypesLabelContent = ExamProblemTypesLabelContent()
+    description:ExamProblemTypesLabelDescription = ExamProblemTypesLabelDescription()
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+
+    def updata(self, other: "ExamProblemTypesLabel") -> None:
+        """更新题目信息"""
+        for k, v in other:
+            if hasattr(self,k):
+                setattr(self, k, v)
+            else:
+                self.other[k] = v
 
 
 class ExamProblemTypesProblemTypes:
