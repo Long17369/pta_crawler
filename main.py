@@ -119,6 +119,7 @@ def main(email: str = "", password: str = ""):
                 with open(
                     f"output/{problem.name}/code/{pid}.cont.md", "w", encoding="utf-8"
                 ) as f:
+                    f.write(f"# {datatmp['title']}\n")
                     f.write(f"{p.problems_list[problem.id].labels[idx].content}\n")
                 data["content"].append(datatmp)
                 break
