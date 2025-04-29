@@ -9,3 +9,5 @@ drive/
 *.json
 
 output/
+
+password.py
