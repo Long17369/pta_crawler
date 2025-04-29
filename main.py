@@ -41,6 +41,17 @@ def create_folder(path, folder_name):
         os.makedirs(path + sanitized_name)
         print(f"文件夹 '{sanitized_name}' 创建成功！")
 
+def get():
+    try:
+        from password import email, password
+    except ImportError:
+        email = ""
+        password = ""
+    if email == "":
+        email = input("请输入邮箱:")
+    if password == "":
+        password = input("请输入密码:")
+    return email, password
 
 def main(email: str = "", password: str = ""):
     p = pta(email, password)
@@ -128,7 +139,6 @@ def main(email: str = "", password: str = ""):
 
 
 if __name__ == "__main__":
-    email = input("请输入邮箱:")
-    password = input("请输入密码:")
+    email,password = get()
     a = main(email, password)
     pprint(eval(str(a)))
