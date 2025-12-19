@@ -3,7 +3,7 @@
 python3 -m venv .venv
 
 # 激活虚拟环境（Linux/macOS）
-source venv/bin/activate
+source .venv/bin/activate
 
 # 安装所需库
 pip install -r requirements.txt
