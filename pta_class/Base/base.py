@@ -1,4 +1,4 @@
-from typing import Any, get_origin, get_args
+from typing import Any, get_origin, get_args, Iterator
 
 
 class BaseScore(float):
@@ -55,12 +55,12 @@ class BaseData:
                     self.other[key] = value
         pass
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         if hasattr(self, key):
             return getattr(self, key)
         raise KeyError(f"{key} not found")
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[tuple[str, Any]]:
         for key in self.__dict__.keys():
             if key == "other":
                 for k, v in self.other.items():

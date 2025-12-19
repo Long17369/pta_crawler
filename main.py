@@ -1,11 +1,12 @@
 import json
 import os
+from typing import Optional, Tuple
+
 from loguru import logger
-
 from tqdm import tqdm
-from pta_class.logger import setup_logging
 
-from pta_class import Problems, pta
+from pta_class.logger import setup_logging
+from pta_class import Problems, Submission, pta
 
 
 def compiler_to_codetype(compiler: str) -> str:
@@ -47,7 +48,7 @@ def create_folder(base: str, folder_name: str) -> str:
     return path
 
 
-def prompt_credentials():
+def prompt_credentials() -> Tuple[str, str]:
     try:
         from password import email, password  # type: ignore
     except ImportError:
@@ -60,7 +61,7 @@ def prompt_credentials():
     return email, password
 
 
-def select_problem_set(client: pta):
+def select_problem_set(client: pta) -> Optional[Problems]:
     if not client.problem_sets:
         raise RuntimeError("尚未加载题目集")
     # 倒序展示，最近的题目集在前；提供退出选项
@@ -79,7 +80,7 @@ def select_problem_set(client: pta):
         print("输入不合法，请重新输入。")
 
 
-def _extract_program_text(submission) -> str:
+def _extract_program_text(submission: Submission) -> str:
     if not submission.submissionDetails:
         return ""
     detail = submission.submissionDetails[0]
@@ -88,7 +89,7 @@ def _extract_program_text(submission) -> str:
     return detail.programmingSubmissionDetail.program
 
 
-def gather_problem_data(client: pta, problem) -> None:
+def gather_problem_data(client: pta, problem: Problems) -> None:
     client.get_exam(problem)
     client.get_problem_list(problem)
 
@@ -168,7 +169,7 @@ def export_problem(client: pta, problem: Problems) -> None:
     logger.info(f"导出索引文件完成: {os.path.join(base_path, 'data.json')}")
 
 
-def main(email: str = "", password: str = ""):
+def main(email: str = "", password: str = "") -> bool:
     with pta(email, password) as client:
         if not client.login():
             logger.error("登录失败")

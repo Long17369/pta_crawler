@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any, List
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -43,7 +43,7 @@ def _browser_installed(browser: str) -> bool:
     return False
 
 
-def _launch_browser(browser: str):
+def _launch_browser(browser: str) -> webdriver.Remote:
     # 使用 Selenium Manager 自动下载驱动；仅在找不到浏览器时抛出可读错误
     if browser == "chrome":
         from selenium.webdriver.chrome.service import Service as ChromeService
@@ -60,7 +60,7 @@ def _launch_browser(browser: str):
     raise ValueError("不支持的浏览器驱动类型，请使用 chrome、edge、firefox 或 auto。")
 
 
-def get_driver(drive_name: Optional[str] = None):
+def get_driver(drive_name: Optional[str] = None) -> webdriver.Remote:
     """
     获取浏览器驱动，自动检测本机浏览器并由 Selenium Manager 下载对应驱动。
     :param drive_name: 浏览器类型，支持 chrome、edge、firefox、auto（默认）。
@@ -95,7 +95,7 @@ def get_driver(drive_name: Optional[str] = None):
 login_url = "https://pintia.cn/auth/login"
 
 
-def login(email: str = "", password: str = ""):
+def login(email: str = "", password: str = "") -> List[dict[str, Any]]:
     drive = get_driver()
     drive.get(login_url)
     try:

@@ -323,7 +323,7 @@ class pta:
             self._print_error("获取提交信息", data)
         return False
 
-    def get_submission_info(self, submission: Submission):
+    def get_submission_info(self, submission: Submission) -> bool:
         url = submission_url.format(submission_id=submission.id)
         success, data = self._api_get(url)
         if success and data:
