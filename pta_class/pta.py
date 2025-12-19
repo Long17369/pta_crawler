@@ -55,11 +55,13 @@ headers = {
 class pta:
     RETRY_STATUS = {429}
 
-    def __init__(self, email: str = "", password: str = ""):
+    def __init__(self, email: str = "", password: str = "", retries: int = 3, backoff: float = 0.5):
         self.email = email
         self.password = password
         self.cookies: dict[str, str] = {}
         self.session = Session()
+        self.retries = int(retries)
+        self.backoff = float(backoff)
         self.user_id: str = ""
         self.problem_sets: list[Problems] = []
         self.exam_info: dict[ProblemsId, Exam] = {}
@@ -127,8 +129,8 @@ class pta:
         *,
         params: Optional[dict[str, Any]] = None,
         payload: Optional[dict[str, Any]] = None,
-        retries: int = 3,
-        backoff: float = 0.5,
+        retries: Optional[int] = None,
+        backoff: Optional[float] = None,
         on_error: Optional[Callable[[Response], None]] = None,
     ) -> tuple[bool, Optional[dict[str, Any]]]:
         response = self._request(
@@ -136,8 +138,8 @@ class pta:
             url,
             params=params,
             payload=payload,
-            retries=retries,
-            backoff=backoff,
+            retries=self.retries if retries is None else retries,
+            backoff=self.backoff if backoff is None else backoff,
         )
         data = self._parse_json(response)
 
@@ -147,6 +149,25 @@ class pta:
         if on_error:
             on_error(response)
         return False, data
+
+    def _api_get(self, url: str, *, params: Optional[dict[str, Any]] = None) -> tuple[bool, Optional[dict[str, Any]]]:
+        return self._request_json("GET", url, params=params)
+
+    def _api_post(self, url: str, *, payload: Optional[dict[str, Any]] = None) -> tuple[bool, Optional[dict[str, Any]]]:
+        return self._request_json("POST", url, payload=payload)
+
+    @staticmethod
+    def _print_error(action: str, data: Optional[dict[str, Any]]) -> None:
+        code = (data or {}).get("error", {}).get("code") if isinstance(data, dict) else None
+        print(f"{action}失败: {data}\n错误码: {code}")
+
+    @property
+    def is_logged_in(self) -> bool:
+        return bool(self.cookies)
+
+    def logout(self) -> None:
+        self.cookies = {}
+        self.session.cookies.clear()
 
     def login(self, nocookies: bool = False) -> bool:
         """登录函数"""
@@ -210,35 +231,31 @@ class pta:
             raise Exception("用户不存在")
 
         if data:
-            print(f"获取题库失败: {data}\n错误码: {data.get('error', {}).get('code')}")
+            self._print_error("获取题库", data)
         return False
 
     def get_exam(self, problems: Problems) -> bool:
         if problems.id in self.exam_info.keys():
             return True
         url = exam_url.format(problems_id=problems.id)
-        success, data = self._request_json("GET", url)
+        success, data = self._api_get(url)
         if success and data:
             self.exam_info[problems.id] = Exam(data["exam"])
             return True
         if data:
-            print(
-                f"获取考试信息失败: {data}\n错误码: {data.get('error', {}).get('code')}"
-            )
+            self._print_error("获取考试信息", data)
         return False
 
     def get_problem_list(self, problems: Problems) -> bool:
         if problems.id in self.problems_list.keys():
             return True
         url = problem_list_url.format(problems_id=problems.id)
-        success, data = self._request_json("GET", url)
+        success, data = self._api_get(url)
         if success and data:
             self.problems_list[problems.id] = ExamProblemTypes(data)
             return True
         if data:
-            print(
-                f"获取题目信息失败: {data}\n错误码: {data.get('error', {}).get('code')}"
-            )
+            self._print_error("获取题目信息", data)
         return False
 
     def get_submission_list(
@@ -249,7 +266,7 @@ class pta:
     ) -> bool:
         url = problem_submission_url.format(exam_id=exam.id, problems_id=problems.id)
         payload = {"limit": 50, "filter": str({"problemSetProblemId": problemid})}
-        success, data = self._request_json("GET", url, params=payload)
+        success, data = self._api_get(url, params=payload)
         if success and data:
             if problemid not in self.submission_list.keys():
                 self.submission_list[problemid] = {}
@@ -259,37 +276,31 @@ class pta:
             return True
 
         if data:
-            print(
-                f"获取提交信息失败: {data}\n错误码: {data.get('error', {}).get('code')}"
-            )
+            self._print_error("获取提交信息", data)
         return False
 
     def get_submission_info(self, submission: Submission):
         url = submission_url.format(submission_id=submission.id)
-        success, data = self._request_json("GET", url)
+        success, data = self._api_get(url)
         if success and data:
             new_data = Submission(data["submission"])
             submission.update(new_data)
             return True
 
         if data:
-            print(
-                f"获取提交信息失败: {data}\n错误码: {data.get('error', {}).get('code')}"
-            )
+            self._print_error("获取提交详情", data)
         return False
 
     def get_problem_description(
         self, problemsid: ProblemsId, problem: ExamProblemTypesLabel
     ) -> bool:
         url = exam_problems_url.format(problems_id=problemsid, problem_id=problem.id)
-        success, data = self._request_json("GET", url)
+        success, data = self._api_get(url)
         if success and data:
             problem.update(ExamProblemTypesLabel(data["problemSetProblem"]))
             return True
         if data:
-            print(
-                f"获取题目描述失败: {data}\n错误码: {data.get('error', {}).get('code')}"
-            )
+            self._print_error("获取题目描述", data)
         return False
 
     def save_cookies(self, path: str = "data.json") -> bool:

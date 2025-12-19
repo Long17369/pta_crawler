@@ -4,7 +4,7 @@ from pprint import pprint
 
 from tqdm import tqdm
 
-from pta_class import pta
+from pta_class import Problems, pta
 
 
 def compiler_to_codetype(compiler: str) -> str:
@@ -98,7 +98,7 @@ def gather_problem_data(client: pta, problem) -> None:
         client.get_problem_description(problem.id, label)
 
 
-def export_problem(client: pta, problem) -> None:
+def export_problem(client: pta, problem: Problems) -> None:
     base_path = create_folder("output", problem.name)
     json_dir = create_folder(base_path, "json")
     code_dir = create_folder(base_path, "code")
