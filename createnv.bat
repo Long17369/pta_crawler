@@ -1,6 +1,6 @@
 @echo off
 REM 创建虚拟环境
-python -m venv venv
+python -m venv .venv
 
 REM 激活虚拟环境（Windows）
 call venv\Scripts\activate
