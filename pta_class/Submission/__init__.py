@@ -1,2 +1,1 @@
 from .submission import Submission
-

@@ -79,8 +79,12 @@ class ProblemId(str):
 class SubmissionDetails(BaseData):
 
     problemSetProblemId: SubmissionProblemSetProblemId = SubmissionProblemSetProblemId()
-    programmingSubmissionDetail: ProgrammingSubmissionDetail = ProgrammingSubmissionDetail()
-    codeCompletionSubmissionDetail: ProgrammingSubmissionDetail = ProgrammingSubmissionDetail()
+    programmingSubmissionDetail: ProgrammingSubmissionDetail = (
+        ProgrammingSubmissionDetail()
+    )
+    codeCompletionSubmissionDetail: ProgrammingSubmissionDetail = (
+        ProgrammingSubmissionDetail()
+    )
     problemId: ProblemId = ProblemId()
 
     def __init__(self, *args, **kwargs) -> None:

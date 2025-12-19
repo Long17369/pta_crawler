@@ -11,7 +11,7 @@ class BaseBool:
 
     data: bool
 
-    def __init__(self, data: 'bool|BaseBool' = False) -> None:
+    def __init__(self, data: "bool|BaseBool" = False) -> None:
         self.data = bool(data)
 
     def __bool__(self) -> bool:
@@ -65,7 +65,6 @@ class BaseData:
                 continue
             yield key, getattr(self, key)
 
-
     def __repr__(self) -> str:
         data = dict(self)
         return f"{self.__class__.__name__}({data})"
@@ -77,24 +76,27 @@ class BaseData:
     def __setattr__(self, key, value) -> None:
         if key in self.__annotations__.keys():
             if hasattr(self, key):
-                super().__setattr__(key, type(getattr(self,key))(value))
+                super().__setattr__(key, type(getattr(self, key))(value))
             else:
                 super().__setattr__(key, value)
-        elif key == 'other':
-            super().__setattr__(key,value)
+        elif key == "other":
+            super().__setattr__(key, value)
         else:
             self.other[key] = value
 
     def to_dict(self) -> dict:
         res = dict()
-        for k,v in self:
-            if isinstance(v,BaseData):
+        for k, v in self:
+            if isinstance(v, BaseData):
                 res[k] = v.to_dict()
-            elif isinstance(v,list):
-                res[k] = [i.to_dict() if isinstance(i,BaseData) else i for i in v]
-            elif isinstance(v,dict):
-                res[k] = {k2:v2.to_dict() if isinstance(v2,BaseData) else v2 for k2,v2 in v.items()}
-            elif isinstance(v,BaseBool):
+            elif isinstance(v, list):
+                res[k] = [i.to_dict() if isinstance(i, BaseData) else i for i in v]
+            elif isinstance(v, dict):
+                res[k] = {
+                    k2: v2.to_dict() if isinstance(v2, BaseData) else v2
+                    for k2, v2 in v.items()
+                }
+            elif isinstance(v, BaseBool):
                 res[k] = bool(v)
             else:
                 res[k] = v

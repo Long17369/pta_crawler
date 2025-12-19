@@ -58,6 +58,7 @@ def _launch_browser(browser: str):
         return webdriver.Firefox(service=FirefoxService())
     raise ValueError("不支持的浏览器驱动类型，请使用 chrome、edge、firefox 或 auto。")
 
+
 def get_driver(drive_name: Optional[str] = None):
     """
     获取浏览器驱动，自动检测本机浏览器并由 Selenium Manager 下载对应驱动。
@@ -69,7 +70,9 @@ def get_driver(drive_name: Optional[str] = None):
 
     if target != "auto":
         if not _browser_installed(target):
-            raise ValueError(f"未检测到已安装的 {target} 浏览器，请安装后重试或使用 auto。")
+            raise ValueError(
+                f"未检测到已安装的 {target} 浏览器，请安装后重试或使用 auto。"
+            )
         print(f"使用指定的 {target} 浏览器，驱动由 Selenium 自动下载。")
         return _launch_browser(target)
 
@@ -88,8 +91,8 @@ def get_driver(drive_name: Optional[str] = None):
     raise RuntimeError("浏览器启动失败，请检查浏览器安装状态。") from last_error
 
 
+login_url = "https://pintia.cn/auth/login"
 
-login_url="https://pintia.cn/auth/login"
 
 def login(email: str = "", password: str = ""):
     drive = get_driver()
@@ -99,7 +102,7 @@ def login(email: str = "", password: str = ""):
             EC.presence_of_all_elements_located((By.TAG_NAME, "body"))
         )
     except Exception as e:
-        print(f'发生错误{e}')
+        print(f"发生错误{e}")
         ...
     email_input = drive.find_element(
         By.XPATH, '//input[@placeholder="电子邮箱或手机号码"]'
@@ -113,18 +116,16 @@ def login(email: str = "", password: str = ""):
     else:
         print("请手动输入账号密码并登录")
     try:
-        WebDriverWait(drive, 3600).until(
-            EC.url_changes(login_url)
-        )
+        WebDriverWait(drive, 3600).until(EC.url_changes(login_url))
     except Exception as e:
-        print(f'发生错误{e}')
+        print(f"发生错误{e}")
         ...
     try:
         WebDriverWait(drive, 3600).until(
             EC.presence_of_all_elements_located((By.TAG_NAME, "body"))
         )
     except Exception as e:
-        print(f'发生错误{e}')
+        print(f"发生错误{e}")
         ...
     cookies = drive.get_cookies()
     drive.close()

@@ -41,6 +41,7 @@ def create_folder(path, folder_name):
         os.makedirs(path + sanitized_name)
         print(f"文件夹 '{sanitized_name}' 创建成功！")
 
+
 def get():
     try:
         from password import email, password
@@ -52,6 +53,7 @@ def get():
     if password == "":
         password = input("请输入密码:")
     return email, password
+
 
 def main(email: str = "", password: str = ""):
     p = pta(email, password)
@@ -70,7 +72,7 @@ def main(email: str = "", password: str = ""):
         p.get_submission_list(problem, p.exam_info[problem.id], i)
     for i in tqdm([j for i in p.submission_list.values() for j in i.values()]):
         p.get_submission_info(i)
-    for i in tqdm([(i,k) for i,j in p.problems_list.items() for k in j.labels]):
+    for i in tqdm([(i, k) for i, j in p.problems_list.items() for k in j.labels]):
         p.get_problem_description(*i)
     with open("data2.json", "w", encoding="utf-8") as f:
         json.dump(
@@ -139,6 +141,6 @@ def main(email: str = "", password: str = ""):
 
 
 if __name__ == "__main__":
-    email,password = get()
+    email, password = get()
     a = main(email, password)
     pprint(eval(str(a)))
