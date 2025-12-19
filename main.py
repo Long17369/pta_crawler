@@ -153,21 +153,21 @@ def export_problem(client: pta, problem) -> None:
 
 
 def main(email: str = "", password: str = ""):
-    client = pta(email, password)
-    try:
+    with pta(email, password) as client:
         if not client.login():
             print("登录失败")
             return False
         print("登录成功")
 
-        client.get_problems()
+        if not client.get_problems():
+            print("获取题库失败，程序结束")
+            return False
+
         problem = select_problem_set(client)
         gather_problem_data(client, problem)
         export_problem(client, problem)
         client.save_cookies()
         return True
-    finally:
-        client.close()
 
 
 if __name__ == "__main__":

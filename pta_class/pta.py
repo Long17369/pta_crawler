@@ -68,6 +68,12 @@ class pta:
             ExamProblemTypesLabelId, dict[SubmissionId, Submission]
         ] = {}
 
+    def __enter__(self) -> "pta":
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        self.close()
+
     def close(self) -> None:
         """关闭底层 Session"""
         self.session.close()
@@ -107,6 +113,13 @@ class pta:
         assert last_response is not None
         return last_response
 
+    @staticmethod
+    def _parse_json(response: Response) -> Optional[dict[str, Any]]:
+        try:
+            return response.json()
+        except Exception:
+            return None
+
     def _request_json(
         self,
         method: str,
@@ -126,11 +139,7 @@ class pta:
             retries=retries,
             backoff=backoff,
         )
-        data: Optional[dict[str, Any]] = None
-        try:
-            data = response.json()
-        except Exception:
-            data = None
+        data = self._parse_json(response)
 
         if response.ok:
             return True, data
@@ -150,6 +159,7 @@ class pta:
             "rememberMe": False,
         }
         response = self._request("POST", login_url, payload=payload)
+        data = self._parse_json(response) or {}
 
         if response.status_code == 200:
             self.cookies = self.session.cookies.get_dict()
@@ -160,15 +170,16 @@ class pta:
             return False
 
         if response.status_code == 400:
-            print(f'{response.json()["error"]["message"]}')
-            if response.json()["error"]["code"] == "GATEWAY_WRONG_CAPTCHA":
+            message = data.get("error", {}).get("message", "登录失败")
+            print(message)
+            if data.get("error", {}).get("code") == "GATEWAY_WRONG_CAPTCHA":
                 print("存在图形验证码，是否打开浏览器登录？(y/n)")
                 choice = input().lower()
                 if choice == "y":
                     return self.browser_login()
             return False
 
-        print(f"未知的错误:{response.json()}")
+        print(f"未知的错误:{data or response.text}")
         return False
 
     def browser_login(self) -> bool:
