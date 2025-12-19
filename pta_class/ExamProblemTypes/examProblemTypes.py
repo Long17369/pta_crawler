@@ -67,14 +67,6 @@ class ExamProblemTypesLabel(BaseData):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-    def update(self, other: "ExamProblemTypesLabel") -> None:
-        """更新题目信息"""
-        for k, v in other:
-            if hasattr(self, k):
-                setattr(self, k, v)
-            else:
-                self.other[k] = v
-
 
 class ExamProblemTypesProblemTypes:
     """未知类，目前不知道有什么属性"""
@@ -88,19 +80,18 @@ class ExamProblemTypes(BaseData):
     ]
 
     def __init__(self, *args, **kwargs) -> None:
-        super().__setattr__("labels", [])
-        super().__setattr__("problemTypes", [])
-        super().__setattr__("examLabelByProblemSetProblemId", {})
         super().__init__(*args, **kwargs)
 
     def __setattr__(self, key: str, value: Any) -> None:
         if key == "labels":
-            for item in value:
-                self.labels.append(ExamProblemTypesLabel(item))
+            super().__setattr__(key, [ExamProblemTypesLabel(item) for item in value])
         elif key == "examLabelByProblemSetProblemId":
-            for key, item in value.items():
-                self.examLabelByProblemSetProblemId[ExamProblemTypesLabelId(key)] = (
-                    ExamProblemTypesLabelNumber(item)
-                )
+            super().__setattr__(
+                key,
+                {
+                    ExamProblemTypesLabelId(k): ExamProblemTypesLabelNumber(v)
+                    for k, v in value.items()
+                },
+            )
         else:
             return super().__setattr__(key, value)

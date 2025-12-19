@@ -55,7 +55,13 @@ headers = {
 class pta:
     RETRY_STATUS = {429}
 
-    def __init__(self, email: str = "", password: str = "", retries: int = 3, backoff: float = 0.5):
+    def __init__(
+        self,
+        email: str = "",
+        password: str = "",
+        retries: int = 3,
+        backoff: float = 0.5,
+    ):
         self.email = email
         self.password = password
         self.cookies: dict[str, str] = {}
@@ -150,15 +156,23 @@ class pta:
             on_error(response)
         return False, data
 
-    def _api_get(self, url: str, *, params: Optional[dict[str, Any]] = None) -> tuple[bool, Optional[dict[str, Any]]]:
+    def _api_get(
+        self, url: str, *, params: Optional[dict[str, Any]] = None
+    ) -> tuple[bool, Optional[dict[str, Any]]]:
         return self._request_json("GET", url, params=params)
 
-    def _api_post(self, url: str, *, payload: Optional[dict[str, Any]] = None) -> tuple[bool, Optional[dict[str, Any]]]:
+    def _api_post(
+        self, url: str, *, payload: Optional[dict[str, Any]] = None
+    ) -> tuple[bool, Optional[dict[str, Any]]]:
         return self._request_json("POST", url, payload=payload)
 
     @staticmethod
     def _print_error(action: str, data: Optional[dict[str, Any]]) -> None:
-        code = (data or {}).get("error", {}).get("code") if isinstance(data, dict) else None
+        code = (
+            (data or {}).get("error", {}).get("code")
+            if isinstance(data, dict)
+            else None
+        )
         print(f"{action}失败: {data}\n错误码: {code}")
 
     @property
