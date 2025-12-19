@@ -63,12 +63,15 @@ def prompt_credentials():
 def select_problem_set(client: pta):
     if not client.problem_sets:
         raise RuntimeError("尚未加载题目集")
-    listing = "\n".join(
-        f"{i}: {client.problem_sets[i].name}" for i in range(len(client.problem_sets))
-    )
-    logger.info("可选题目集:\n" + listing)
+    # 倒序展示，最近的题目集在前；提供退出选项
+    indices = list(range(len(client.problem_sets) - 1, -1, -1))
+    listing = "\n".join(f"{idx}: {client.problem_sets[idx].name}" for idx in indices)
+    logger.info("可选题目集(输入数字选择，q 退出):\n" + listing)
     while True:
         choice = input("请输入题目集的序号: ").strip()
+        if choice.lower() in {"q", "quit", "exit"}:
+            logger.info("用户选择退出")
+            return None
         if choice.isdigit() and 0 <= int(choice) < len(client.problem_sets):
             sel = client.problem_sets[int(choice)]
             logger.info(f"选择题目集: index={choice}, id={sel.id}, name={sel.name}")
@@ -171,15 +174,17 @@ def main(email: str = "", password: str = ""):
             logger.error("登录失败")
             return False
         logger.info("登录成功")
+        client.save_cookies()
 
         if not client.get_problems():
             logger.error("获取题库失败，程序结束")
             return False
 
         problem = select_problem_set(client)
+        if problem is None:
+            return False
         gather_problem_data(client, problem)
         export_problem(client, problem)
-        client.save_cookies()
         return True
 
 
