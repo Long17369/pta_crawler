@@ -1,25 +1,22 @@
 import json
-from requests import Session
+import time
 from datetime import datetime, timezone
+from typing import Any, Callable, Optional
+
+from requests import Session, Response
 
 from pta_class.ExamProblemTypes.examProblemTypes import (
     ExamProblemTypesLabel,
     ExamProblemTypesLabelId,
 )
 from .browser_login import login as web_login
-
-from .Problems.problems import Problems, ProblemsId
 from .Exam import Exam
 from .ExamProblemTypes import ExamProblemTypes
+from .Problems.problems import Problems, ProblemsId
 from .Submission.submission import (
     Submission,
     SubmissionId,
-    SubmissionProblemSetProblemId,
 )
-
-from datetime import datetime, timezone
-
-import time
 
 
 def get_time_str() -> str:
@@ -56,10 +53,13 @@ headers = {
 
 
 class pta:
+    RETRY_STATUS = {429}
+
     def __init__(self, email: str = "", password: str = ""):
         self.email = email
         self.password = password
         self.cookies: dict[str, str] = {}
+        self.session = Session()
         self.user_id: str = ""
         self.problem_sets: list[Problems] = []
         self.exam_info: dict[ProblemsId, Exam] = {}
@@ -68,36 +68,108 @@ class pta:
             ExamProblemTypesLabelId, dict[SubmissionId, Submission]
         ] = {}
 
+    def close(self) -> None:
+        """关闭底层 Session"""
+        self.session.close()
+
+    def _request(
+        self,
+        method: str,
+        url: str,
+        *,
+        params: Optional[dict[str, Any]] = None,
+        payload: Optional[dict[str, Any]] = None,
+        retries: int = 3,
+        backoff: float = 0.5,
+        cookies: Optional[dict[str, str]] = None,
+    ) -> Response:
+        """统一的请求入口，处理重试与默认头/凭据。"""
+
+        last_response: Optional[Response] = None
+        for attempt in range(retries + 1):
+            response = self.session.request(
+                method,
+                url,
+                params=params,
+                json=payload,
+                cookies=cookies or self.cookies,
+                headers=headers,
+            )
+            last_response = response
+
+            if response.status_code in self.RETRY_STATUS and attempt < retries:
+                time.sleep(backoff * (2**attempt))
+                continue
+
+            return response
+
+        # 如果走到这里，说明重试后仍失败，返回最后一次响应供上层处理
+        assert last_response is not None
+        return last_response
+
+    def _request_json(
+        self,
+        method: str,
+        url: str,
+        *,
+        params: Optional[dict[str, Any]] = None,
+        payload: Optional[dict[str, Any]] = None,
+        retries: int = 3,
+        backoff: float = 0.5,
+        on_error: Optional[Callable[[Response], None]] = None,
+    ) -> tuple[bool, Optional[dict[str, Any]]]:
+        response = self._request(
+            method,
+            url,
+            params=params,
+            payload=payload,
+            retries=retries,
+            backoff=backoff,
+        )
+        data: Optional[dict[str, Any]] = None
+        try:
+            data = response.json()
+        except Exception:
+            data = None
+
+        if response.ok:
+            return True, data
+
+        if on_error:
+            on_error(response)
+        return False, data
+
     def login(self, nocookies: bool = False) -> bool:
         """登录函数"""
         if (not nocookies) and self.read_cookies():
             return True
+
         payload = {
             "email": self.email,
             "password": self.password,
             "rememberMe": False,
         }
-        with Session() as session:
-            response = session.post(login_url, json=payload, headers=headers)
-            if response.status_code == 200:
-                self.cookies = session.cookies.get_dict()
-                return True
-            else:
-                if response.status_code == 415:
-                    print("登录失败")
-                    return False
-                elif response.status_code == 400:
-                    print(f'{response.json()["error"]["message"]}')
-                    if response.json()["error"]["code"] == "GATEWAY_WRONG_CAPTCHA":
-                        print("存在图形验证码，是否打开浏览器登录？(y/n)")
-                        choice = input().lower()
-                        if choice == "y":
-                            return self.browser_login()
-                        return False
-                    return False
-                else:
-                    print(f"未知的错误:{response.json()}")
-                    return False
+        response = self._request("POST", login_url, payload=payload)
+
+        if response.status_code == 200:
+            self.cookies = self.session.cookies.get_dict()
+            return True
+
+        if response.status_code == 415:
+            print("登录失败")
+            return False
+
+        if response.status_code == 400:
+            print(f'{response.json()["error"]["message"]}')
+            if response.json()["error"]["code"] == "GATEWAY_WRONG_CAPTCHA":
+                print("存在图形验证码，是否打开浏览器登录？(y/n)")
+                choice = input().lower()
+                if choice == "y":
+                    return self.browser_login()
+            return False
+
+        print(f"未知的错误:{response.json()}")
+        return False
 
     def browser_login(self) -> bool:
         """使用浏览器登录"""
@@ -107,63 +179,56 @@ class pta:
             print(f"发生错误: {e}")
             return False
         self.cookies.update({str(i["name"]): str(i["value"]) for i in cookies})
+        self.session.cookies.update(self.cookies)
         return True
 
     def get_problems(self) -> bool:
         payload = {"filter": {"endAtAfter": get_time_str()}}
-        with Session() as session:
-            requsets = session.get(
-                problem_set_url, json=payload, cookies=self.cookies, headers=headers
-            )
-            if requsets.status_code == 200:
-                problem_set = requsets.json()
-                self.problem_sets += [Problems(i) for i in problem_set["problemSets"]]
-                return True
-            else:
-                print(
-                    f"获取题库失败: {requsets.json()}\n错误码: {requsets.status_code}"
-                )
-                if requsets.json()["error"]["code"] == "USER_NOT_FOUND":
-                    choise = input("是否重新登录？(y/n)")
-                    if choise.lower() == "y":
-                        self.cookies = {}
-                        self.login(nocookies=True)
-                        return self.get_problems()
-                    else:
-                        raise Exception("用户不存在")
-                return False
+        success, data = self._request_json("GET", problem_set_url, payload=payload)
+        if success and data:
+            self.problem_sets += [Problems(i) for i in data.get("problemSets", [])]
+            return True
+
+        if data and data.get("error", {}).get("code") == "USER_NOT_FOUND":
+            choice = input("是否重新登录？(y/n)")
+            if choice.lower() == "y":
+                self.cookies = {}
+                self.session.cookies.clear()
+                self.login(nocookies=True)
+                return self.get_problems()
+            raise Exception("用户不存在")
+
+        if data:
+            print(f"获取题库失败: {data}\n错误码: {data.get('error', {}).get('code')}")
+        return False
 
     def get_exam(self, problems: Problems) -> bool:
         if problems.id in self.exam_info.keys():
             return True
         url = exam_url.format(problems_id=problems.id)
-        with Session() as session:
-            requests = session.get(url, cookies=self.cookies, headers=headers)
-            if requests.status_code == 200:
-                exam_info = requests.json()
-                self.exam_info[problems.id] = Exam(exam_info["exam"])
-                return True
-            else:
-                print(
-                    f"获取考试信息失败: {requests.json()}\n错误码: {requests.status_code}"
-                )
-                return False
+        success, data = self._request_json("GET", url)
+        if success and data:
+            self.exam_info[problems.id] = Exam(data["exam"])
+            return True
+        if data:
+            print(
+                f"获取考试信息失败: {data}\n错误码: {data.get('error', {}).get('code')}"
+            )
+        return False
 
     def get_problem_list(self, problems: Problems) -> bool:
         if problems.id in self.problems_list.keys():
             return True
         url = problem_list_url.format(problems_id=problems.id)
-        with Session() as session:
-            requests = session.get(url, cookies=self.cookies, headers=headers)
-            if requests.status_code == 200:
-                problem_list_info = requests.json()
-                self.problems_list[problems.id] = ExamProblemTypes(problem_list_info)
-                return True
-            else:
-                print(
-                    f"获取题目信息失败: {requests.json()}\n错误码: {requests.status_code}"
-                )
-                return False
+        success, data = self._request_json("GET", url)
+        if success and data:
+            self.problems_list[problems.id] = ExamProblemTypes(data)
+            return True
+        if data:
+            print(
+                f"获取题目信息失败: {data}\n错误码: {data.get('error', {}).get('code')}"
+            )
+        return False
 
     def get_submission_list(
         self,
@@ -173,60 +238,47 @@ class pta:
     ) -> bool:
         url = problem_submission_url.format(exam_id=exam.id, problems_id=problems.id)
         payload = {"limit": 50, "filter": str({"problemSetProblemId": problemid})}
-        with Session() as session:
-            requests = session.get(
-                url, cookies=self.cookies, headers=headers, params=payload
+        success, data = self._request_json("GET", url, params=payload)
+        if success and data:
+            if problemid not in self.submission_list.keys():
+                self.submission_list[problemid] = {}
+            for i in data.get("submissions", []):
+                submission = Submission(i)
+                self.submission_list[problemid][submission.id] = submission
+            return True
+
+        if data:
+            print(
+                f"获取提交信息失败: {data}\n错误码: {data.get('error', {}).get('code')}"
             )
-            if requests.status_code == 200:
-                submission_list = requests.json()
-                if problemid not in self.submission_list.keys():
-                    self.submission_list[problemid] = {}
-                for i in submission_list["submissions"]:
-                    submission = Submission(i)
-                    self.submission_list[problemid][submission.id] = submission
-                return True
-            elif requests.status_code == 429:
-                time.sleep(0.5)
-                return self.get_submission_list(problems, exam, problemid)
-            else:
-                print(
-                    f"获取提交信息失败: {requests.json()}\n错误码: {requests.status_code}"
-                )
-                return False
+        return False
 
     def get_submission_info(self, submission: Submission):
         url = submission_url.format(submission_id=submission.id)
-        with Session() as session:
-            requests = session.get(url, cookies=self.cookies, headers=headers)
-            if requests.status_code == 200:
-                submission_info = requests.json()
-                new_data = Submission(submission_info["submission"])
-                submission.updata(new_data)
-                return True
-            if requests.status_code == 429:
-                time.sleep(0.5)
-                return self.get_submission_info(submission)
-            else:
-                print(
-                    f"获取提交信息失败: {requests.json()}\n错误码: {requests.status_code}"
-                )
-                return False
+        success, data = self._request_json("GET", url)
+        if success and data:
+            new_data = Submission(data["submission"])
+            submission.updata(new_data)
+            return True
+
+        if data:
+            print(
+                f"获取提交信息失败: {data}\n错误码: {data.get('error', {}).get('code')}"
+            )
+        return False
 
     def get_problem_description(
         self, problemsid: ProblemsId, problem: ExamProblemTypesLabel
     ) -> bool:
         url = exam_problems_url.format(problems_id=problemsid, problem_id=problem.id)
-        with Session() as session:
-            requests = session.get(url, cookies=self.cookies, headers=headers)
-            if requests.status_code == 200:
-                problem_info = requests.json()
-                problem.updata(ExamProblemTypesLabel(problem_info["problemSetProblem"]))
-                return True
-            else:
-                print(
-                    f"获取题目描述失败: {requests.json()}\n错误码: {requests.status_code}"
-                )
-                return False
+        success, data = self._request_json("GET", url)
+        if success and data:
+            problem.updata(ExamProblemTypesLabel(data["problemSetProblem"]))
+            return True
+        if data:
+            print(
+                f"获取题目描述失败: {data}\n错误码: {data.get('error', {}).get('code')}"
+            )
         return False
 
     def save_cookies(self, path: str = "data.json") -> bool:
@@ -243,6 +295,7 @@ class pta:
         try:
             with open(path, "r", encoding="utf-8") as f:
                 self.cookies = json.load(f)
+            self.session.cookies.update(self.cookies)
             return True
         except FileNotFoundError:
             print("Cookie文件不存在")
