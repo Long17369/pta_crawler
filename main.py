@@ -12,7 +12,7 @@ def compiler_to_codetype(compiler):
         return "c"
     elif compiler == "g++" or compiler == "clang++":
         return "cpp"
-    elif compiler == "java":
+    elif compiler == "java" or compiler == "javac":
         return "java"
     elif compiler == "python3":
         return "python3"
