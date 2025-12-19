@@ -1,1 +1,0 @@
-from pta_class.Submission import *
