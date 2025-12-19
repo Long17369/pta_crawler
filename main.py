@@ -1,8 +1,9 @@
 import json
 import os
-from pprint import pprint
+from loguru import logger
 
 from tqdm import tqdm
+from pta_class.logger import setup_logging
 
 from pta_class import Problems, pta
 
@@ -42,7 +43,7 @@ def create_folder(base: str, folder_name: str) -> str:
     path = os.path.join(base, sanitized_name)
     if not os.path.exists(path):
         os.makedirs(path)
-        print(f"文件夹 '{sanitized_name}' 创建成功！")
+        logger.info(f"文件夹 '{sanitized_name}' 创建成功！")
     return path
 
 
@@ -62,11 +63,16 @@ def prompt_credentials():
 def select_problem_set(client: pta):
     if not client.problem_sets:
         raise RuntimeError("尚未加载题目集")
-    pprint({i: client.problem_sets[i].name for i in range(len(client.problem_sets))})
+    listing = "\n".join(
+        f"{i}: {client.problem_sets[i].name}" for i in range(len(client.problem_sets))
+    )
+    logger.info("可选题目集:\n" + listing)
     while True:
         choice = input("请输入题目集的序号: ").strip()
         if choice.isdigit() and 0 <= int(choice) < len(client.problem_sets):
-            return client.problem_sets[int(choice)]
+            sel = client.problem_sets[int(choice)]
+            logger.info(f"选择题目集: index={choice}, id={sel.id}, name={sel.name}")
+            return sel
         print("输入不合法，请重新输入。")
 
 
@@ -84,16 +90,19 @@ def gather_problem_data(client: pta, problem) -> None:
     client.get_problem_list(problem)
 
     label_ids = list(client.problems_list[problem.id].examLabelByProblemSetProblemId)
+    logger.info(f"待抓取题目数量: {len(label_ids)}")
     for label_id in tqdm(label_ids, desc="获取提交列表"):
         client.get_submission_list(problem, client.exam_info[problem.id], label_id)
 
     submissions = [
         s for all_subs in client.submission_list.values() for s in all_subs.values()
     ]
+    logger.info(f"待抓取提交详情数量: {len(submissions)}")
     for submission in tqdm(submissions, desc="获取提交详情"):
         client.get_submission_info(submission)
 
     labels = client.problems_list[problem.id].labels
+    logger.info(f"待抓取题目描述数量: {len(labels)}")
     for label in tqdm(labels, desc="获取题目描述"):
         client.get_problem_description(problem.id, label)
 
@@ -147,20 +156,24 @@ def export_problem(client: pta, problem: Problems) -> None:
             f.write(f"{label.content}\n")
 
         data["content"].append(datatmp)
+        logger.debug(
+            f"导出完成: id={label.id}, title={label.title}, compiler={accepted.compiler}"
+        )
 
     with open(os.path.join(base_path, "data.json"), "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
+    logger.info(f"导出索引文件完成: {os.path.join(base_path, 'data.json')}")
 
 
 def main(email: str = "", password: str = ""):
     with pta(email, password) as client:
         if not client.login():
-            print("登录失败")
+            logger.error("登录失败")
             return False
-        print("登录成功")
+        logger.info("登录成功")
 
         if not client.get_problems():
-            print("获取题库失败，程序结束")
+            logger.error("获取题库失败，程序结束")
             return False
 
         problem = select_problem_set(client)
@@ -171,5 +184,6 @@ def main(email: str = "", password: str = ""):
 
 
 if __name__ == "__main__":
+    setup_logging()
     email, password = prompt_credentials()
     main(email, password)

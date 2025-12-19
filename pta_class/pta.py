@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Any, Callable, Optional
 
 from requests import Session, Response
+from loguru import logger
 
 from pta_class.ExamProblemTypes.examProblemTypes import (
     ExamProblemTypesLabel,
@@ -101,6 +102,9 @@ class pta:
 
         last_response: Optional[Response] = None
         for attempt in range(retries + 1):
+            logger.trace(
+                f"HTTP {method} {url} attempt={attempt+1}/{retries+1} params={params} payload={(payload and '...') or None}"
+            )
             response = self.session.request(
                 method,
                 url,
@@ -112,9 +116,16 @@ class pta:
             last_response = response
 
             if response.status_code in self.RETRY_STATUS and attempt < retries:
-                time.sleep(backoff * (2**attempt))
+                delay = backoff * (2**attempt)
+                logger.warning(
+                    f"Rate limited ({response.status_code}). Backing off {delay:.2f}s then retrying..."
+                )
+                time.sleep(delay)
                 continue
 
+            logger.debug(
+                f"HTTP {method} {url} status={response.status_code} len={len(response.content) if response.content is not None else 0}"
+            )
             return response
 
         # 如果走到这里，说明重试后仍失败，返回最后一次响应供上层处理
@@ -150,10 +161,16 @@ class pta:
         data = self._parse_json(response)
 
         if response.ok:
+            logger.trace(
+                f"JSON OK {method} {url} keys={list(data.keys()) if isinstance(data, dict) else 'N/A'}"
+            )
             return True, data
 
         if on_error:
             on_error(response)
+        logger.error(
+            f"JSON ERR {method} {url} status={response.status_code} body={(data if isinstance(data, dict) else response.text[:200])}"
+        )
         return False, data
 
     def _api_get(
@@ -173,13 +190,14 @@ class pta:
             if isinstance(data, dict)
             else None
         )
-        print(f"{action}失败: {data}\n错误码: {code}")
+        logger.error(f"{action}失败: {data}\n错误码: {code}")
 
     @property
     def is_logged_in(self) -> bool:
         return bool(self.cookies)
 
     def logout(self) -> None:
+        logger.info("Logging out and clearing cookies")
         self.cookies = {}
         self.session.cookies.clear()
 
@@ -198,23 +216,24 @@ class pta:
 
         if response.status_code == 200:
             self.cookies = self.session.cookies.get_dict()
+            logger.info("登录成功（API）")
             return True
 
         if response.status_code == 415:
-            print("登录失败")
+            logger.error("登录失败")
             return False
 
         if response.status_code == 400:
             message = data.get("error", {}).get("message", "登录失败")
-            print(message)
+            logger.error(message)
             if data.get("error", {}).get("code") == "GATEWAY_WRONG_CAPTCHA":
-                print("存在图形验证码，是否打开浏览器登录？(y/n)")
+                logger.warning("存在图形验证码，是否打开浏览器登录？(y/n)")
                 choice = input().lower()
                 if choice == "y":
                     return self.browser_login()
             return False
 
-        print(f"未知的错误:{data or response.text}")
+        logger.error(f"未知的错误:{data or response.text}")
         return False
 
     def browser_login(self) -> bool:
@@ -222,10 +241,11 @@ class pta:
         try:
             cookies = web_login(self.email, self.password)
         except Exception as e:
-            print(f"发生错误: {e}")
+            logger.exception(f"发生错误: {e}")
             return False
         self.cookies.update({str(i["name"]): str(i["value"]) for i in cookies})
         self.session.cookies.update(self.cookies)
+        logger.info("登录成功（浏览器）")
         return True
 
     def get_problems(self) -> bool:
@@ -233,6 +253,7 @@ class pta:
         success, data = self._request_json("GET", problem_set_url, payload=payload)
         if success and data:
             self.problem_sets += [Problems(i) for i in data.get("problemSets", [])]
+            logger.info(f"已获取题目集数量: {len(self.problem_sets)}")
             return True
 
         if data and data.get("error", {}).get("code") == "USER_NOT_FOUND":
@@ -250,11 +271,13 @@ class pta:
 
     def get_exam(self, problems: Problems) -> bool:
         if problems.id in self.exam_info.keys():
+            logger.debug(f"考试信息已缓存: {problems.id}")
             return True
         url = exam_url.format(problems_id=problems.id)
         success, data = self._api_get(url)
         if success and data:
             self.exam_info[problems.id] = Exam(data["exam"])
+            logger.info(f"获取考试信息成功: {problems.id}")
             return True
         if data:
             self._print_error("获取考试信息", data)
@@ -262,11 +285,15 @@ class pta:
 
     def get_problem_list(self, problems: Problems) -> bool:
         if problems.id in self.problems_list.keys():
+            logger.debug(f"题目列表已缓存: {problems.id}")
             return True
         url = problem_list_url.format(problems_id=problems.id)
         success, data = self._api_get(url)
         if success and data:
             self.problems_list[problems.id] = ExamProblemTypes(data)
+            logger.info(
+                f"获取题目列表成功: {problems.id}, 题目数={len(self.problems_list[problems.id].labels)}"
+            )
             return True
         if data:
             self._print_error("获取题目信息", data)
@@ -287,6 +314,9 @@ class pta:
             for i in data.get("submissions", []):
                 submission = Submission(i)
                 self.submission_list[problemid][submission.id] = submission
+            logger.debug(
+                f"获取提交列表成功: problemId={problemid}, 提交数={len(self.submission_list[problemid])}"
+            )
             return True
 
         if data:
@@ -299,6 +329,9 @@ class pta:
         if success and data:
             new_data = Submission(data["submission"])
             submission.update(new_data)
+            logger.debug(
+                f"获取提交详情成功: submissionId={submission.id}, status={submission.status}, score={submission.score}"
+            )
             return True
 
         if data:
@@ -312,6 +345,9 @@ class pta:
         success, data = self._api_get(url)
         if success and data:
             problem.update(ExamProblemTypesLabel(data["problemSetProblem"]))
+            logger.debug(
+                f"获取题目描述成功: problemsId={problemsid}, labelId={problem.id}"
+            )
             return True
         if data:
             self._print_error("获取题目描述", data)
@@ -325,6 +361,7 @@ class pta:
                 ensure_ascii=False,
                 indent=4,
             )
+        logger.info(f"Cookies 已保存到 {path}")
         return True
 
     def read_cookies(self, path: str = "data.json") -> bool:
@@ -332,13 +369,14 @@ class pta:
             with open(path, "r", encoding="utf-8") as f:
                 self.cookies = json.load(f)
             self.session.cookies.update(self.cookies)
+            logger.info(f"Cookies 已从 {path} 读取")
             return True
         except FileNotFoundError:
-            print("Cookie文件不存在")
+            logger.warning("Cookie文件不存在")
             return False
         except json.JSONDecodeError:
-            print("Cookie文件格式错误")
+            logger.error("Cookie文件格式错误")
             return False
         except Exception as e:
-            print(f"发生错误: {e}")
+            logger.exception(f"发生错误: {e}")
             return False
