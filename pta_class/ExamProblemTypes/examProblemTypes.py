@@ -67,7 +67,7 @@ class ExamProblemTypesLabel(BaseData):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-    def updata(self, other: "ExamProblemTypesLabel") -> None:
+    def update(self, other: "ExamProblemTypesLabel") -> None:
         """更新题目信息"""
         for k, v in other:
             if hasattr(self, k):

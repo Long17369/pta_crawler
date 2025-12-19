@@ -125,7 +125,7 @@ class Submission(BaseData):
         else:
             super().__setattr__(name, value)
 
-    def updata(self, other: "Submission"):
+    def update(self, other: "Submission") -> None:
         """更新提交信息"""
         for k, v in other:
             if k in self.__dict__:

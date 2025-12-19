@@ -269,7 +269,7 @@ class pta:
         success, data = self._request_json("GET", url)
         if success and data:
             new_data = Submission(data["submission"])
-            submission.updata(new_data)
+            submission.update(new_data)
             return True
 
         if data:
@@ -284,7 +284,7 @@ class pta:
         url = exam_problems_url.format(problems_id=problemsid, problem_id=problem.id)
         success, data = self._request_json("GET", url)
         if success and data:
-            problem.updata(ExamProblemTypesLabel(data["problemSetProblem"]))
+            problem.update(ExamProblemTypesLabel(data["problemSetProblem"]))
             return True
         if data:
             print(
