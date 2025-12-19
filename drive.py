@@ -1,11 +1,11 @@
 """
-请自行根据所下载的浏览器驱动修改
-- edge: https://developer.microsoft.com/microsoft-edge/tools/webdriver/
-- chrome: https://chromedriver.chromium.org/downloads
-- firefox: https://github.com/mozilla/geckodriver/releases
-- auto: 自动识别drive目录下存在的驱动(请不要修改文件名)
+浏览器驱动配置
+- auto: 自动检测已安装浏览器并由 Selenium Manager 下载对应驱动
+- edge/chrome/firefox: 手动指定浏览器（若指定的浏览器未安装将报错）
 """
-drive_name = "edge"
+
+# 默认自动选择浏览器并自动下载驱动
+drive_name = "auto"
 
 
 
