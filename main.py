@@ -89,15 +89,6 @@ def _extract_program_text(submission: Submission) -> str:
     return detail.programmingSubmissionDetail.program
 
 
-def _compiler_to_extension(compiler: str) -> str:
-    code_type = compiler_to_codetype(compiler)
-    if code_type == "cpp":
-        return "cpp"
-    if code_type == "python3":
-        return "py"
-    return code_type
-
-
 def gather_problem_data(client: pta, problem: Problems) -> None:
     client.get_exam(problem)
     client.get_problem_list(problem)
@@ -160,7 +151,6 @@ def export_problem(client: pta, problem: Problems) -> None:
             "description": f"# {datatmp['title']}\n{label.content}",
             "files": [
                 {
-                    "filename": f"main.{_compiler_to_extension(accepted.compiler)}",
                     "language": compiler_to_codetype(accepted.compiler),
                     "code": program_text,
                 }
