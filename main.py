@@ -89,6 +89,15 @@ def _extract_program_text(submission: Submission) -> str:
     return detail.programmingSubmissionDetail.program
 
 
+def _compiler_to_extension(compiler: str) -> str:
+    code_type = compiler_to_codetype(compiler)
+    if code_type == "cpp":
+        return "cpp"
+    if code_type == "python3":
+        return "py"
+    return code_type
+
+
 def gather_problem_data(client: pta, problem: Problems) -> None:
     client.get_exam(problem)
     client.get_problem_list(problem)
@@ -146,18 +155,19 @@ def export_problem(client: pta, problem: Problems) -> None:
         ) as f:
             json.dump(accepted.to_dict(), f, ensure_ascii=False, indent=4)
 
-        with open(
-            os.path.join(code_dir, f"{label.id}.code.md"), "w", encoding="utf-8"
-        ) as f:
-            f.write(f"```{compiler_to_codetype(accepted.compiler)}\n")
-            f.write(program_text)
-            f.write("\n```\n")
-
-        with open(
-            os.path.join(code_dir, f"{label.id}.cont.md"), "w", encoding="utf-8"
-        ) as f:
-            f.write(f"# {datatmp['title']}\n")
-            f.write(f"{label.content}\n")
+        code_data = {
+            "title": datatmp["title"],
+            "description": f"# {datatmp['title']}\n{label.content}",
+            "files": [
+                {
+                    "filename": f"main.{_compiler_to_extension(accepted.compiler)}",
+                    "language": compiler_to_codetype(accepted.compiler),
+                    "code": program_text,
+                }
+            ],
+        }
+        with open(os.path.join(code_dir, f"{label.id}.json"), "w", encoding="utf-8") as f:
+            json.dump(code_data, f, ensure_ascii=False, indent=4)
 
         data["content"].append(datatmp)
         logger.debug(

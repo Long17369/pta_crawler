@@ -58,7 +58,7 @@
 
 - `pta_class`：核心功能模块。
 - `main.py`：主程序入口 (爬取题目信息和提交信息)。
-- `output/`：导出的 JSON 和代码文件存储目录。
+- `output/`：导出的 JSON 和代码文件存储目录（`code/<题目ID>.json` 为 `web_educoder` 兼容格式）。
 
 ## 问题
 
