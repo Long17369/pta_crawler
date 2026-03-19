@@ -1,11 +1,10 @@
 from typing import Optional, Any, List
-from selenium import webdriver
+from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import os
 import shutil
-from drive import *
 from loguru import logger
 
 # 常见浏览器可执行文件和默认安装路径，用于快速探测已安装浏览器
@@ -43,24 +42,27 @@ def _browser_installed(browser: str) -> bool:
     return False
 
 
-def _launch_browser(browser: str) -> webdriver.Remote:
+def _launch_browser(browser: str) -> WebDriver:
     # 使用 Selenium Manager 自动下载驱动；仅在找不到浏览器时抛出可读错误
     if browser == "chrome":
+        from selenium.webdriver.chrome.webdriver import WebDriver as Chrome
         from selenium.webdriver.chrome.service import Service as ChromeService
 
-        return webdriver.Chrome(service=ChromeService())
+        return Chrome(service=ChromeService())
     if browser == "edge":
+        from selenium.webdriver.edge.webdriver import WebDriver as Edge
         from selenium.webdriver.edge.service import Service as EdgeService
 
-        return webdriver.Edge(service=EdgeService())
+        return Edge(service=EdgeService())
     if browser == "firefox":
+        from selenium.webdriver.firefox.webdriver import WebDriver as Firefox
         from selenium.webdriver.firefox.service import Service as FirefoxService
 
-        return webdriver.Firefox(service=FirefoxService())
+        return Firefox(service=FirefoxService())
     raise ValueError("不支持的浏览器驱动类型，请使用 chrome、edge、firefox 或 auto。")
 
 
-def get_driver(drive_name: Optional[str] = None) -> webdriver.Remote:
+def get_driver(drive_name: Optional[str] = None) -> WebDriver:
     """
     获取浏览器驱动，自动检测本机浏览器并由 Selenium Manager 下载对应驱动。
     :param drive_name: 浏览器类型，支持 chrome、edge、firefox、auto（默认）。
@@ -74,7 +76,7 @@ def get_driver(drive_name: Optional[str] = None) -> webdriver.Remote:
             raise ValueError(
                 f"未检测到已安装的 {target} 浏览器，请安装后重试或使用 auto。"
             )
-        print(f"使用指定的 {target} 浏览器，驱动由 Selenium 自动下载。")
+        logger.info(f"使用指定的 {target} 浏览器，驱动由 Selenium 自动下载。")
         return _launch_browser(target)
 
     available = [b for b in _BROWSER_PRIORITY if _browser_installed(b)]
@@ -84,7 +86,9 @@ def get_driver(drive_name: Optional[str] = None) -> webdriver.Remote:
     last_error = None
     for browser in available:
         try:
-            print(f"检测到 {browser} 浏览器，正在启动（驱动由 Selenium 自动下载）。")
+            logger.info(
+                f"检测到 {browser} 浏览器，正在启动（驱动由 Selenium 自动下载）。"
+            )
             return _launch_browser(browser)
         except Exception as exc:
             last_error = exc
