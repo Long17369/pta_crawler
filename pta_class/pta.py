@@ -276,9 +276,22 @@ class pta:
         url = exam_url.format(problems_id=problems.id)
         success, data = self._api_get(url)
         if success and data:
-            self.exam_info[problems.id] = Exam(data["exam"])
-            logger.info(f"获取考试信息成功: {problems.id}")
-            return True
+            exam_data = None
+            if isinstance(data, dict):
+                if "exam" in data:
+                    exam_data = data.get("exam")
+                elif isinstance(data.get("exams"), list) and data.get("exams"):
+                    # 某些接口返回 exams 数组而非 exam 对象，取第一个可用项
+                    exam_data = data["exams"][0]
+
+            if exam_data:
+                self.exam_info[problems.id] = Exam(exam_data)
+                logger.info(f"获取考试信息成功: {problems.id}")
+                return True
+
+            logger.error(
+                f"获取考试信息失败: 响应缺少 exam/exams 字段, keys={list(data.keys()) if isinstance(data, dict) else type(data)}"
+            )
         if data:
             self._print_error("获取考试信息", data)
         return False
