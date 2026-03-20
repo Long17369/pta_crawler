@@ -13,3 +13,5 @@ output/
 password.py
 
 logs/
+
+!data.schema.json

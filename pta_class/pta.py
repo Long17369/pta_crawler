@@ -263,6 +263,7 @@ class pta:
                 self.cookies = {}
                 self.session.cookies.clear()
                 self.login(nocookies=True)
+                self.save_cookies()
                 return self.get_problems()
             raise RuntimeError("用户取消登录")
 
