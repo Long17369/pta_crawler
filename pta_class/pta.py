@@ -103,7 +103,7 @@ class pta:
         last_response: Optional[Response] = None
         for attempt in range(retries + 1):
             logger.trace(
-                f"HTTP {method} {url} attempt={attempt+1}/{retries+1} params={params} payload={(payload and '...') or None}"
+                f"HTTP {method} {url} attempt={attempt + 1}/{retries + 1} params={params} payload={(payload and '...') or None}"
             )
             response = self.session.request(
                 method,
@@ -244,6 +244,7 @@ class pta:
             logger.exception(f"发生错误: {e}")
             return False
         self.cookies.update({str(i["name"]): str(i["value"]) for i in cookies})
+        self.session.cookies.clear()
         self.session.cookies.update(self.cookies)
         logger.info("登录成功（浏览器）")
         return True
@@ -263,7 +264,7 @@ class pta:
                 self.session.cookies.clear()
                 self.login(nocookies=True)
                 return self.get_problems()
-            raise Exception("用户不存在")
+            raise RuntimeError("用户取消登录")
 
         if data:
             self._print_error("获取题库", data)
