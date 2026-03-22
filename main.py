@@ -233,7 +233,9 @@ def export_problem(client: pta, problem: Problems) -> None:
             "title": label.title,
             "content": [source_file],
         }
-        if label.content:
+        if label.description:
+            code_data["description"] = label.description
+        elif label.content:
             code_data["description"] = label.content
 
         with open(os.path.join(problem_dir, "data.json"), "w", encoding="utf-8") as f:
