@@ -1,11 +1,12 @@
-from typing import Optional, Any, List
-from selenium.webdriver.remote.webdriver import WebDriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 import os
 import shutil
+from typing import Any, List, Optional
+
 from loguru import logger
+from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webdriver import WebDriver
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
 # 常见浏览器可执行文件和默认安装路径，用于快速探测已安装浏览器
 _BROWSER_EXECUTABLES = {
@@ -45,18 +46,18 @@ def _browser_installed(browser: str) -> bool:
 def _launch_browser(browser: str) -> WebDriver:
     # 使用 Selenium Manager 自动下载驱动；仅在找不到浏览器时抛出可读错误
     if browser == "chrome":
-        from selenium.webdriver.chrome.webdriver import WebDriver as Chrome
         from selenium.webdriver.chrome.service import Service as ChromeService
+        from selenium.webdriver.chrome.webdriver import WebDriver as Chrome
 
         return Chrome(service=ChromeService())
     if browser == "edge":
-        from selenium.webdriver.edge.webdriver import WebDriver as Edge
         from selenium.webdriver.edge.service import Service as EdgeService
+        from selenium.webdriver.edge.webdriver import WebDriver as Edge
 
         return Edge(service=EdgeService())
     if browser == "firefox":
-        from selenium.webdriver.firefox.webdriver import WebDriver as Firefox
         from selenium.webdriver.firefox.service import Service as FirefoxService
+        from selenium.webdriver.firefox.webdriver import WebDriver as Firefox
 
         return Firefox(service=FirefoxService())
     raise ValueError("不支持的浏览器驱动类型，请使用 chrome、edge、firefox 或 auto。")

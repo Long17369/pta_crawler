@@ -9,6 +9,7 @@ drive/
 *.json
 
 output/
+temp/
 
 password.py
 

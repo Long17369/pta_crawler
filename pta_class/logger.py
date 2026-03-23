@@ -10,6 +10,7 @@ from tqdm import tqdm
 # Use tqdm.write to keep progress bars intact when logging
 _tqdm_stream = sys.stderr
 
+
 def _tqdm_sink(msg: str) -> None:
     # Loguru sends a final "\n", tqdm.write handles its own newline behavior
     tqdm.write(msg.rstrip(), file=_tqdm_stream)
@@ -17,6 +18,7 @@ def _tqdm_sink(msg: str) -> None:
         _tqdm_stream.flush()
     except Exception:
         pass
+
 
 def setup_logging(
     *,

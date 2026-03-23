@@ -1,13 +1,13 @@
+import hashlib
 import json
 import os
-import hashlib
 from typing import Optional, Tuple
 
 from loguru import logger
 from tqdm import tqdm
 
-from pta_class.logger import setup_logging
 from pta_class import Problems, Submission, pta
+from pta_class.logger import setup_logging
 
 
 def compiler_to_codetype(compiler: str) -> Optional[str]:
@@ -132,7 +132,7 @@ def select_problem_set(client: pta) -> Optional[Problems]:
     # 倒序展示，最近的题目集在前；提供退出选项
     indices = list(range(len(client.problem_sets) - 1, -1, -1))
     listing = "\n".join(f"{idx}: {client.problem_sets[idx].name}" for idx in indices)
-    logger.info("可选题目集(输入数字选择，q 退出):\n" + listing)
+    print("可选题目集(输入数字选择，q 退出):\n" + listing)
     while True:
         choice = input("请输入题目集的序号: ").strip()
         if choice.lower() in {"q", "quit", "exit"}:
@@ -149,9 +149,11 @@ def _extract_program_text(submission: Submission) -> str:
     if not submission.submissionDetails:
         return ""
     detail = submission.submissionDetails[0]
-    if detail.codeCompletionSubmissionDetail.program:
-        return detail.codeCompletionSubmissionDetail.program
-    return detail.programmingSubmissionDetail.program
+    return (
+        detail.codeCompletionSubmissionDetail.program
+        or detail.programmingSubmissionDetail.program
+        or detail.sqlProgrammingSubmissionDetail.program
+    )
 
 
 def gather_problem_data(client: pta, problem: Problems) -> None:
@@ -217,8 +219,6 @@ def export_problem(client: pta, problem: Problems) -> None:
             continue
 
         program_text = _extract_program_text(accepted)
-        if not program_text:
-            continue
 
         target_problem_id = to_stable_numeric_id(label.id, problem_set_id)
         problem_dir = create_folder(base_path, target_problem_id)

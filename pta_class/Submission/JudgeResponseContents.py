@@ -1,5 +1,6 @@
 from typing import Any
-from ..Base import *
+
+from ..Base import BaseBool, BaseData, BaseScore
 from ..Problems.problems import ProblemsId
 from .TestcaseJudgeResults import TestcaseJudgeResults
 

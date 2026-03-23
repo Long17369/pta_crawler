@@ -3,13 +3,14 @@ import time
 from datetime import datetime, timezone
 from typing import Any, Callable, Optional
 
-from requests import Session, Response
 from loguru import logger
+from requests import Response, Session
 
 from pta_class.ExamProblemTypes.examProblemTypes import (
     ExamProblemTypesLabel,
     ExamProblemTypesLabelId,
 )
+
 from .browser_login import login as web_login
 from .Exam import Exam
 from .ExamProblemTypes import ExamProblemTypes
@@ -135,7 +136,8 @@ class pta:
     @staticmethod
     def _parse_json(response: Response) -> Optional[dict[str, Any]]:
         try:
-            return response.json()
+            data = response.json()
+            return data
         except Exception:
             return None
 

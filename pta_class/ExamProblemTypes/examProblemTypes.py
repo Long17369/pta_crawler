@@ -1,5 +1,6 @@
 from typing import Any
-from ..Base import *
+
+from ..Base import BaseData, BaseScore
 
 
 class ExamProblemTypesLabelId(str):

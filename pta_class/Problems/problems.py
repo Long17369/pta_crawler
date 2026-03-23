@@ -1,4 +1,4 @@
-from ..Base import *
+from ..Base import BaseBool, BaseData, BaseId
 
 
 class ProblemsId(BaseId):

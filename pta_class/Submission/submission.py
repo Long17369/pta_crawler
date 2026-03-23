@@ -1,5 +1,6 @@
 from typing import Any
-from ..Base import *
+
+from ..Base import BaseBool, BaseData, BaseScore
 from ..Problems.problems import ProblemsId
 from .JudgeResponseContents import JudgeResponseContents
 
@@ -77,7 +78,6 @@ class ProblemId(str):
 
 
 class SubmissionDetails(BaseData):
-
     problemSetProblemId: SubmissionProblemSetProblemId = SubmissionProblemSetProblemId()
     programmingSubmissionDetail: ProgrammingSubmissionDetail = (
         ProgrammingSubmissionDetail()
@@ -86,13 +86,15 @@ class SubmissionDetails(BaseData):
         ProgrammingSubmissionDetail()
     )
     problemId: ProblemId = ProblemId()
+    sqlProgrammingSubmissionDetail: ProgrammingSubmissionDetail = (
+        ProgrammingSubmissionDetail()
+    )
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
 
 class Submission(BaseData):
-
     id: SubmissionId = SubmissionId()
     userId: SubmissionUserId = SubmissionUserId()
     problemType: SubmissionProblemType = SubmissionProblemType()
@@ -107,8 +109,8 @@ class Submission(BaseData):
     judgeAt: SubmissionJudgeAt = SubmissionJudgeAt()
     cause: SubmissionCause = SubmissionCause()
     problemSetId: ProblemsId = ProblemsId()
-    submissionDetails: list[SubmissionDetails]
-    judgeResponseContents: list[JudgeResponseContents]
+    submissionDetails: list[SubmissionDetails] = []
+    judgeResponseContents: list[JudgeResponseContents] = []
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)

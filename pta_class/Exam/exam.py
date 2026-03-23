@@ -1,4 +1,4 @@
-from ..Base import BaseData, BaseScore, BaseId
+from ..Base import BaseData, BaseId, BaseScore
 
 
 class ExamId(BaseId):

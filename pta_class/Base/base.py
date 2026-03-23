@@ -1,4 +1,4 @@
-from typing import Any, get_origin, get_args, Iterator
+from typing import Any, Iterator, get_args, get_origin
 
 
 class BaseScore(float):
